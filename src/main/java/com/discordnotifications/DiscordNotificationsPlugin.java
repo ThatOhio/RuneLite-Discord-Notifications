@@ -6,14 +6,12 @@ import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
-import net.runelite.api.widgets.WidgetID;
-import net.runelite.api.widgets.WidgetInfo;
+import net.runelite.api.gameval.InterfaceID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.DrawManager;
-import static net.runelite.api.widgets.WidgetID.QUEST_COMPLETED_GROUP_ID;
 
 import net.runelite.client.util.Text;
 import okhttp3.*;
@@ -116,7 +114,7 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
-		boolean didCompleteClue = client.getWidget(WidgetInfo.CLUE_SCROLL_REWARD_ITEM_CONTAINER) != null;
+		boolean didCompleteClue = client.getWidget(InterfaceID.TrailRewardscreen.ITEMS) != null;
 
 		if (shouldSendClueMessage && didCompleteClue && config.includeClues()) {
 			shouldSendClueMessage = false;
@@ -125,10 +123,10 @@ public class DiscordNotificationsPlugin extends Plugin
 
 		if (shouldSendQuestMessage
 				&& config.includeQuestComplete()
-				&& client.getWidget(WidgetInfo.QUEST_COMPLETED_NAME_TEXT) != null
+				&& client.getWidget(InterfaceID.Questscroll.QUEST_TITLE) != null
 		) {
 			shouldSendQuestMessage = false;
-			String text = client.getWidget(WidgetInfo.QUEST_COMPLETED_NAME_TEXT).getText();
+			String text = client.getWidget(InterfaceID.Questscroll.QUEST_TITLE).getText();
 			String questName = parseQuestCompletedWidget(text);
 			sendQuestMessage(questName);
 		}
@@ -222,11 +220,11 @@ public class DiscordNotificationsPlugin extends Plugin
 	{
 		int groupId = event.getGroupId();
 
-		if (groupId == QUEST_COMPLETED_GROUP_ID) {
+		if (groupId == InterfaceID.QUESTSCROLL) {
 			shouldSendQuestMessage = true;
 		}
 
-		if (groupId == WidgetID.CLUE_SCROLL_REWARD_GROUP_ID) {
+		if (groupId == InterfaceID.TRAIL_REWARDSCREEN) {
 			shouldSendClueMessage = true;
 		}
 	}
