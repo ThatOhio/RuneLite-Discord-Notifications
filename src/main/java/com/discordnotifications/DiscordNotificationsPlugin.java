@@ -1,6 +1,5 @@
 package com.discordnotifications;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
@@ -11,25 +10,14 @@ import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.client.ui.DrawManager;
 
 import net.runelite.client.util.Text;
-import okhttp3.*;
 
-import javax.imageio.ImageIO;
 import javax.inject.Inject;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static net.runelite.http.api.RuneLiteAPI.GSON;
 
 @Slf4j
 @PluginDescriptor(name = "Discord Notifications")
@@ -73,10 +61,7 @@ public class DiscordNotificationsPlugin extends Plugin
 	private DiscordNotificationsConfig config;
 
 	@Inject
-	private OkHttpClient okHttpClient;
-
-	@Inject
-	private DrawManager drawManager;
+	private DiscordWebhookService webhookService;
 
 	@Provides
 	DiscordNotificationsConfig provideConfig(ConfigManager configManager)
@@ -293,9 +278,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		String questMessageString = config.questMessage().replaceAll("\\$name", localName)
 														 .replaceAll("\\$quest", questName);
 
-		DiscordWebhookBody discordWebhookBody = new DiscordWebhookBody();
-		discordWebhookBody.setContent(questMessageString);
-		sendWebhook(discordWebhookBody, config.sendQuestingScreenshot());
+		webhookService.sendMessage(questMessageString, config.sendQuestingScreenshot());
 	}
 
 	private void sendCombatAchievementMessage(String task) {
@@ -306,9 +289,7 @@ public class DiscordNotificationsPlugin extends Plugin
 				  .replaceAll("\\$name", localName)
 				  .replaceAll("\\$achievement", task);
 
-		DiscordWebhookBody discordWebhookBody = new DiscordWebhookBody();
-		discordWebhookBody.setContent(combatAchievementMessageString);
-		sendWebhook(discordWebhookBody, config.sendCombatAchievementsScreenshot());
+		webhookService.sendMessage(combatAchievementMessageString, config.sendCombatAchievementsScreenshot());
 	}
 
 	private void sendCollectionLogMessage(String entry) {
@@ -319,9 +300,7 @@ public class DiscordNotificationsPlugin extends Plugin
 				.replaceAll("\\$name", localName)
 				.replaceAll("\\$entry", entry);
 
-		DiscordWebhookBody discordWebhookBody = new DiscordWebhookBody();
-		discordWebhookBody.setContent(collectionLogMessageString);
-		sendWebhook(discordWebhookBody, config.sendCollectionLogScreenshot());
+		webhookService.sendMessage(collectionLogMessageString, config.sendCollectionLogScreenshot());
 	}
 
 	private void sendDeathMessage()
@@ -330,9 +309,7 @@ public class DiscordNotificationsPlugin extends Plugin
 
 		String deathMessageString = config.deathMessage().replaceAll("\\$name", localName);
 
-		DiscordWebhookBody discordWebhookBody = new DiscordWebhookBody();
-		discordWebhookBody.setContent(deathMessageString);
-		sendWebhook(discordWebhookBody, config.sendDeathScreenshot());
+		webhookService.sendMessage(deathMessageString, config.sendDeathScreenshot());
 	}
 
 	private void sendClueMessage()
@@ -341,9 +318,7 @@ public class DiscordNotificationsPlugin extends Plugin
 
 		String clueMessage = config.clueMessage().replaceAll("\\$name", localName);
 
-		DiscordWebhookBody discordWebhookBody = new DiscordWebhookBody();
-		discordWebhookBody.setContent(clueMessage);
-		sendWebhook(discordWebhookBody, config.sendClueScreenshot());
+		webhookService.sendMessage(clueMessage, config.sendClueScreenshot());
 	}
 
 	private void sendLevelMessage()
@@ -374,9 +349,7 @@ public class DiscordNotificationsPlugin extends Plugin
 			levelUpString = fixed;
 		}
 
-		DiscordWebhookBody discordWebhookBody = new DiscordWebhookBody();
-		discordWebhookBody.setContent(levelUpString);
-		sendWebhook(discordWebhookBody, config.sendLevellingScreenshot());
+		webhookService.sendMessage(levelUpString, config.sendLevellingScreenshot());
 	}
 
 	private void sendPetMessage()
@@ -385,111 +358,7 @@ public class DiscordNotificationsPlugin extends Plugin
 
 		String petMessageString = config.petMessage().replaceAll("\\$name", localName);
 
-		DiscordWebhookBody discordWebhookBody = new DiscordWebhookBody();
-		discordWebhookBody.setContent(petMessageString);
-		sendWebhook(discordWebhookBody, config.sendPetScreenshot());
-	}
-
-	private void sendWebhook(DiscordWebhookBody discordWebhookBody, boolean sendScreenshot)
-	{
-		String configUrl = config.webhook();
-		if (Strings.isNullOrEmpty(configUrl)) { return; }
-
-		List<String> webhookUrls =
-			Arrays.asList(configUrl.split("\n"))
-				.stream()
-				.filter(u -> u.length() > 0)
-				.map(u -> u.trim())
-				.collect(Collectors.toList());
-
-		for (String webhookUrl : webhookUrls)
-		{
-			HttpUrl url = HttpUrl.parse(webhookUrl);
-			MultipartBody.Builder requestBodyBuilder =
-				new MultipartBody
-						.Builder()
-						.setType(MultipartBody.FORM)
-						.addFormDataPart("payload_json", GSON.toJson(discordWebhookBody));
-
-			if (sendScreenshot)
-			{
-				sendWebhookWithScreenshot(url, requestBodyBuilder);
-			}
-			else
-			{
-				buildRequestAndSend(url, requestBodyBuilder);
-			}
-		}
-	}
-
-	private void sendWebhookWithScreenshot(HttpUrl url, MultipartBody.Builder requestBodyBuilder)
-	{
-		drawManager.requestNextFrameListener(
-			image ->
-			{
-				BufferedImage bufferedImage = (BufferedImage) image;
-				byte[] imageBytes;
-				try
-				{
-					imageBytes = convertImageToByteArray(bufferedImage);
-				}
-				catch (IOException e)
-				{
-					log.warn("Error converting image to byte array", e);
-					return;
-				}
-
-				requestBodyBuilder.addFormDataPart(
-					"file",
-					"image.png",
-					RequestBody.create(
-						MediaType.parse("image/png"),
-						imageBytes
-					)
-				);
-
-				buildRequestAndSend(url, requestBodyBuilder);
-			}
-		);
-	}
-
-	private void buildRequestAndSend(HttpUrl url, MultipartBody.Builder requestBodyBuilder)
-	{
-		RequestBody requestBody = requestBodyBuilder.build();
-
-		Request request = new Request.Builder()
-				.url(url)
-				.post(requestBody)
-				.build();
-
-		sendRequest(request);
-	}
-
-	private void sendRequest(Request request)
-	{
-		okHttpClient.newCall(request).enqueue(
-			new Callback()
-			{
-				@Override
-				public void onFailure(Call call, IOException e)
-				{
-					log.debug("Error submitting webhook", e);
-				}
-
-				@Override
-				public void onResponse(Call call, Response response) throws IOException
-				{
-					response.close();
-				}
-			}
-		);
-	}
-
-	private static byte[] convertImageToByteArray(BufferedImage bufferedImage) throws IOException
-	{
-		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-		ImageIO.write(bufferedImage, "png", byteArrayOutputStream);
-		return byteArrayOutputStream.toByteArray();
+		webhookService.sendMessage(petMessageString, config.sendPetScreenshot());
 	}
 
 	private void resetState()
