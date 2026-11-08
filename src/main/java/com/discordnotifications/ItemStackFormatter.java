@@ -1,6 +1,8 @@
 package com.discordnotifications;
 
 import lombok.Value;
+import net.runelite.api.ItemComposition;
+import net.runelite.api.gameval.ItemID;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.util.QuantityFormatter;
 
@@ -18,6 +20,42 @@ public class ItemStackFormatter
 	public Stack stack(int itemId, int quantity)
 	{
 		return new Stack(itemManager.getItemComposition(itemId).getMembersName(), quantity, itemManager.getItemPrice(itemId));
+	}
+
+	public Stack stackWithStorePrice(int itemId, int quantity)
+	{
+		ItemComposition item = itemManager.getItemComposition(itemId);
+		long price = inferredPrice(itemId);
+		if (price <= 0)
+		{
+			price = itemManager.getItemPrice(itemId);
+		}
+		return new Stack(item.getMembersName(), quantity, price > 0 ? price : item.getPrice());
+	}
+
+	// Untradeable drops whose store price says nothing about what they're worth
+	private long inferredPrice(int itemId)
+	{
+		switch (itemId)
+		{
+			case ItemID.ARAXYTE_FANG:
+				return gePrice(ItemID.ETCHED_ARAXYTE_FANG);
+			case ItemID.ELDER_VENATOR_FANG:
+				return gePrice(ItemID.ETCHED_ELDER_VENATOR_FANG);
+			case ItemID.NOXIOUS_HALBERD_PART_1:
+			case ItemID.NOXIOUS_HALBERD_PART_2:
+			case ItemID.NOXIOUS_HALBERD_PART_3:
+				return gePrice(ItemID.NOXIOUS_HALBERD) / 3;
+			case ItemID.MOKHAIOTL_CLOTH:
+				return gePrice(ItemID.CONFLICTION_GAUNTLETS) - gePrice(ItemID.ZENYTE_BRACELET_ENCHANTED) - gePrice(ItemID.DEMON_TEAR) * 10_000;
+			default:
+				return 0;
+		}
+	}
+
+	private long gePrice(int itemId)
+	{
+		return itemManager.getItemPriceWithSource(itemId, true);
 	}
 
 	public static String format(Collection<Stack> stacks)

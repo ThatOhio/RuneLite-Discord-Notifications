@@ -5,6 +5,7 @@ import lombok.Value;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 @Value
@@ -20,6 +21,10 @@ public class Notification
 
 	@Builder.Default
 	Map<String, String> placeholders = Collections.emptyMap();
+
+	// The items a loot line lists, the queue matches these against collection log entries
+	@Builder.Default
+	List<String> itemNames = Collections.emptyList();
 
 	@Builder.Default
 	Instant createdAt = Instant.now();

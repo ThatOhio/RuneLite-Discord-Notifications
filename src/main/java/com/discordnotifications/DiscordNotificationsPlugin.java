@@ -5,6 +5,7 @@ import com.discordnotifications.notifiers.CollectionLogNotifier;
 import com.discordnotifications.notifiers.CombatAchievementNotifier;
 import com.discordnotifications.notifiers.DeathNotifier;
 import com.discordnotifications.notifiers.LevelNotifier;
+import com.discordnotifications.notifiers.LootNotifier;
 import com.discordnotifications.notifiers.PetNotifier;
 import com.discordnotifications.notifiers.QuestNotifier;
 import com.google.common.base.Strings;
@@ -22,8 +23,12 @@ import net.runelite.api.events.UsernameChanged;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.NpcLootReceived;
+import net.runelite.client.events.PlayerLootReceived;
+import net.runelite.client.events.ServerNpcLoot;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.plugins.loottracker.LootReceived;
 
 import javax.inject.Inject;
 
@@ -52,6 +57,12 @@ public class DiscordNotificationsPlugin extends Plugin
 
 	@Inject
 	private CombatAchievementNotifier combatAchievementNotifier;
+
+	@Inject
+	private LootNotifier lootNotifier;
+
+	@Inject
+	private KillCountService killCountService;
 
 	@Inject
 	private NotificationQueue notificationQueue;
@@ -97,6 +108,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		levelNotifier.onGameTick();
 		petNotifier.onGameTick();
 		collectionLogNotifier.onGameTick();
+		lootNotifier.onGameTick();
 	}
 
 	@Subscribe
@@ -127,11 +139,13 @@ public class DiscordNotificationsPlugin extends Plugin
 		}
 
 		String message = sanitize(event.getMessage());
+		killCountService.onGameMessage(message);
 		petNotifier.onGameMessage(message);
 		collectionLogNotifier.onGameMessage(message);
 		combatAchievementNotifier.onGameMessage(message);
 		clueNotifier.onGameMessage(message);
 		deathNotifier.onGameMessage(message);
+		lootNotifier.onGameMessage(message);
 	}
 
 	@Subscribe
@@ -149,8 +163,38 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Subscribe
 	public void onWidgetLoaded(WidgetLoaded event)
 	{
+		killCountService.onWidgetLoaded(event);
 		questNotifier.onWidgetLoaded(event);
 		clueNotifier.onWidgetLoaded(event);
+	}
+
+	// Before the loot tracker, so its saved kills don't already include this one
+	@Subscribe(priority = 1)
+	public void onServerNpcLoot(ServerNpcLoot event)
+	{
+		killCountService.onServerNpcLoot(event);
+		lootNotifier.onServerNpcLoot(event);
+	}
+
+	@Subscribe(priority = 1)
+	public void onNpcLootReceived(NpcLootReceived event)
+	{
+		killCountService.onNpcLootReceived(event);
+		lootNotifier.onNpcLootReceived(event);
+	}
+
+	@Subscribe(priority = 1)
+	public void onPlayerLootReceived(PlayerLootReceived event)
+	{
+		killCountService.onPlayerLootReceived(event);
+		lootNotifier.onPlayerLootReceived(event);
+	}
+
+	@Subscribe(priority = 1)
+	public void onLootReceived(LootReceived event)
+	{
+		killCountService.onLootReceived(event);
+		lootNotifier.onLootReceived(event);
 	}
 
 	@Subscribe
@@ -163,10 +207,12 @@ public class DiscordNotificationsPlugin extends Plugin
 
 	private void resetState()
 	{
+		killCountService.reset();
 		levelNotifier.reset();
 		clueNotifier.reset();
 		deathNotifier.reset();
 		petNotifier.reset();
 		collectionLogNotifier.reset();
+		lootNotifier.reset();
 	}
 }

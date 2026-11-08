@@ -94,6 +94,50 @@ public class NotificationQueueTest
 			NotificationQueue.join(List.of(unnamedPet("$pet"), clog("Olmlet"), clog("Twisted bow"))));
 	}
 
+	private static Notification loot(String text, String... items)
+	{
+		return Notification.builder()
+			.type(NotificationType.LOOT)
+			.text(text)
+			.itemNames(List.of(items))
+			.build();
+	}
+
+	@Test
+	public void lootLineAbsorbsItsCollectionLogLine()
+	{
+		assertEquals("loot (new collection log entry!)",
+			NotificationQueue.join(List.of(loot("loot", "Twisted bow", "Coins"), clog("twisted bow"))));
+	}
+
+	@Test
+	public void lootKeepsCollectionLogLineForAnItemItDoesntList()
+	{
+		assertEquals("clog Twisted bow\nloot",
+			NotificationQueue.join(List.of(loot("loot", "Coins"), clog("Twisted bow"))));
+	}
+
+	@Test
+	public void twoEntriesOnOneLootLineGetOneNote()
+	{
+		assertEquals("loot (new collection log entry!)",
+			NotificationQueue.join(List.of(loot("loot", "Twisted bow", "Elder maul"), clog("Twisted bow"), clog("Elder maul"))));
+	}
+
+	@Test
+	public void oneEntryOnlyMarksOneLootLine()
+	{
+		assertEquals("first (new collection log entry!)\nsecond",
+			NotificationQueue.join(List.of(loot("first", "Twisted bow"), loot("second", "Twisted bow"), clog("Twisted bow"))));
+	}
+
+	@Test
+	public void unnamedPetDoesNotTakeTheNameOfALootItem()
+	{
+		assertEquals("Bob just got a pet!\nloot (new collection log entry!)",
+			NotificationQueue.join(List.of(unnamedPet("$name just got a pet: $pet"), loot("loot", "Twisted bow"), clog("Twisted bow"))));
+	}
+
 	@Test
 	public void duplicatePetDoesNotTakeACollectionLogName()
 	{

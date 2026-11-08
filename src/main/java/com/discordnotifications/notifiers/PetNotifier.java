@@ -1,5 +1,6 @@
 package com.discordnotifications.notifiers;
 
+import com.discordnotifications.KillCountService;
 import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import com.google.common.collect.ImmutableList;
@@ -8,6 +9,7 @@ import net.runelite.api.ScriptID;
 import net.runelite.api.VarClientStr;
 import net.runelite.api.events.ScriptPreFired;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.HashMap;
 import java.util.List;
@@ -26,7 +28,7 @@ public class PetNotifier extends BaseNotifier
 		Pattern.compile("Untradeable drop: (.+)"),
 		Pattern.compile("New item added to your collection log: (.+)"));
 
-	private static final String NO_NAME_MESSAGE = "$name just got a pet!$duplicate";
+	private static final String NO_NAME_MESSAGE = "$name just got a pet$from$kc!$duplicate";
 	private static final int MAX_WAIT_TICKS = 5;
 
 	// Other untradeables can drop during the wait, "Pet ..." names are matched by prefix
@@ -40,6 +42,9 @@ public class PetNotifier extends BaseNotifier
 		"scorpia's offspring", "scurry", "skotos", "smolcano", "smol heredit", "soup", "sraracha",
 		"tangleroot", "tiny tempor", "tumeken's guardian", "tzrek-jad", "venenatis spiderling",
 		"vet'ion jr.", "vorki", "wisp", "yami", "youngllef");
+
+	@Inject
+	private KillCountService killCountService;
 
 	private boolean waiting;
 	private boolean duplicate;
@@ -135,9 +140,14 @@ public class PetNotifier extends BaseNotifier
 		{
 			placeholders.put("pet", pet);
 		}
-		if (milestone != null)
+		KillCountService.Drop drop = killCountService.getRecentDrop();
+		if (drop != null)
 		{
-			placeholders.put("kc", " at " + milestone);
+			placeholders.putAll(killCountService.sourcePlaceholders(drop));
+		}
+		if (milestone != null && placeholders.getOrDefault("kc", "").isEmpty())
+		{
+			placeholders.put("milestone", " at " + milestone);
 		}
 		if (duplicate)
 		{

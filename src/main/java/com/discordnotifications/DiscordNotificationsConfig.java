@@ -392,6 +392,77 @@ public interface DiscordNotificationsConfig extends Config {
 	}
 
 	@ConfigSection(
+		name = "Loot",
+		description = "The config for loot notifications",
+		position = 7,
+		closedByDefault = true
+	)
+	String lootConfig = "lootConfig";
+
+	@ConfigItem(
+		keyName = "includeLoot",
+		name = "Send Loot Notifications",
+		description = "Send messages when you get a valuable drop. Raids, chests and pickpocketing need the Loot Tracker plugin turned on.",
+		section = lootConfig,
+		position = 1
+	)
+	default boolean includeLoot() { return false; }
+
+	@ConfigItem(
+		keyName = "minLootValue",
+		name = "Minimum value",
+		description = "A drop is only sent if it's worth at least this much. Value basis picks what gets compared.",
+		section = lootConfig,
+		position = 2
+	)
+	default int minLootValue() { return 100000; }
+
+	@ConfigItem(
+		keyName = "lootValueBasis",
+		name = "Value basis",
+		description = "What has to reach the minimum. Single item is the price of one, whole stack is price times quantity, whole drop adds up everything and lists all of it.",
+		section = lootConfig,
+		position = 3
+	)
+	default LootValueBasis lootValueBasis() { return LootValueBasis.STACK; }
+
+	@ConfigItem(
+		keyName = "lootAllowlist",
+		name = "Always send",
+		description = "Items that send a message no matter what they're worth. Put each on its own line, or separate them with commas. Use * as a wildcard, like Tumeken's shadow*",
+		section = lootConfig,
+		position = 4
+	)
+	default String lootAllowlist() { return ""; }
+
+	@ConfigItem(
+		keyName = "lootDenylist",
+		name = "Never send",
+		description = "Items that never send a message or count toward the minimum, even if they're on Always send. Same format as Always send.",
+		section = lootConfig,
+		position = 5
+	)
+	default String lootDenylist() { return ""; }
+
+	@ConfigItem(
+		keyName = "includePlayerLoot",
+		name = "Include PvP loot",
+		description = "Also send loot from killing other players. Safe areas like Last Man Standing never send.",
+		section = lootConfig,
+		position = 6
+	)
+	default boolean includePlayerLoot() { return true; }
+
+	@ConfigItem(
+		keyName = "sendLootScreenshot",
+		name = "Include Loot screenshots",
+		description = "Include a screenshot with the Discord notification when you get a valuable drop.",
+		section = lootConfig,
+		position = 100
+	)
+	default boolean sendLootScreenshot() { return false; }
+
+	@ConfigSection(
 		name = "Webhook overrides",
 		description = "Send an event to its own channel instead of the main webhook. Leave one blank to use the main webhook. Put each URL on its own line if you want more than one.",
 		position = 999,
@@ -462,6 +533,15 @@ public interface DiscordNotificationsConfig extends Config {
 	)
 	default String combatAchievementWebhook() { return ""; }
 
+	@ConfigItem(
+		keyName = "lootWebhook",
+		name = "Loot",
+		description = "Webhook URL(s) for loot.",
+		section = webhookOverridesConfig,
+		position = 8
+	)
+	default String lootWebhook() { return ""; }
+
 	@ConfigSection(
 		name = "Advanced: message templates",
 		description = "Change the text of each message",
@@ -527,20 +607,20 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "petTemplate",
 		name = "Pet Message",
-		description = "Sent when you get a pet. Use $name, $pet, $kc (like: at 1,234 kills) and $duplicate. Put $kc and $duplicate straight after another word, they add their own space and are blank when unknown.",
+		description = "Sent when you get a pet. Use $name, $pet, $source, $from (like: from Zulrah), $kc (like: (KC 1,234)), $milestone (like: at 5,000,000 XP, only used when there's no $kc) and $duplicate. Put $from, $kc, $milestone and $duplicate straight after another word, they add their own space and are blank when unknown.",
 		section = messageTemplatesConfig,
 		position = 5
 	)
-	default String petMessage() { return "$name just got a pet: $pet$kc$duplicate"; }
+	default String petMessage() { return "$name just got a pet: $pet$from$kc$milestone$duplicate"; }
 
 	@ConfigItem(
 		keyName = "collectionLogMessage",
 		name = "Collection log Message",
-		description = "Sent when you fill a collection log slot. Use $name, $entry, $completed, $total and $progress (like: (123/1,692)). Put $progress straight after another word, it adds its own space. The counts are blank if the game hasn't sent them yet, opening the Character Summary tab fixes that.",
+		description = "Sent when you fill a collection log slot. Use $name, $entry, $completed, $total, $progress (like: (123/1,692)), $source, $from (like: from Zulrah) and $kc (like: (KC 1,234)). Put $progress, $from and $kc straight after another word, they add their own space. The counts are blank if the game hasn't sent them yet, opening the Character Summary tab fixes that. $source, $from and $kc are blank if the item didn't come from a drop in the last 30 seconds.",
 		section = messageTemplatesConfig,
 		position = 6
 	)
-	default String collectionLogMessage() { return "$name has just completed a collection log: $entry$progress"; }
+	default String collectionLogMessage() { return "$name added $entry to their collection log$progress$from$kc"; }
 
 	@ConfigItem(
 		keyName = "combatAchievementsMessage",
@@ -550,4 +630,13 @@ public interface DiscordNotificationsConfig extends Config {
 		position = 7
 	)
 	default String combatAchievementsMessage() { return "$name has just completed a combat achievement: $task ($tier)$tierUnlocked"; }
+
+	@ConfigItem(
+		keyName = "lootMessage",
+		name = "Loot Message",
+		description = "Sent when you get a valuable drop. Use $name, $items (only the stacks that passed your loot filters), $value (the whole drop), $source and $kc (like: (KC 1,234)). Put $kc straight after another word, it adds its own space and is blank if the kill count isn't known.",
+		section = messageTemplatesConfig,
+		position = 8
+	)
+	default String lootMessage() { return "$name has just received $items from $source$kc, whole drop worth $value gp"; }
 }
