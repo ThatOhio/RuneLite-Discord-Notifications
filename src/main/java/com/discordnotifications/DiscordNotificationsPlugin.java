@@ -6,6 +6,7 @@ import com.discordnotifications.notifiers.CombatAchievementNotifier;
 import com.discordnotifications.notifiers.DeathNotifier;
 import com.discordnotifications.notifiers.DiaryNotifier;
 import com.discordnotifications.notifiers.KillCountNotifier;
+import com.discordnotifications.notifiers.LeaguesNotifier;
 import com.discordnotifications.notifiers.LevelNotifier;
 import com.discordnotifications.notifiers.LootNotifier;
 import com.discordnotifications.notifiers.PetNotifier;
@@ -70,6 +71,9 @@ public class DiscordNotificationsPlugin extends Plugin
 
 	@Inject
 	private LootNotifier lootNotifier;
+
+	@Inject
+	private LeaguesNotifier leaguesNotifier;
 
 	@Inject
 	private KillCountService killCountService;
@@ -187,6 +191,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		clueNotifier.onGameMessage(message);
 		deathNotifier.onGameMessage(message);
 		lootNotifier.onGameMessage(message);
+		leaguesNotifier.onGameMessage(message);
 	}
 
 	@Subscribe

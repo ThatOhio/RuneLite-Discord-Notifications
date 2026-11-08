@@ -1,5 +1,5 @@
 # Discord Notifications
-This is a plugin for RuneLite which sends a message to your discord channel when you level up, complete a quest or clue scroll, die, get a pet, get a valuable drop, add an item to your collection log, complete a combat task, finish an achievement diary, or hit a boss kill count milestone or personal best. Each one can be turned on or off separately, the message text can be edited, and you can optionally attach a screenshot as proof.
+This is a plugin for RuneLite which sends a message to your discord channel when you level up, complete a quest or clue scroll, die, get a pet, get a valuable drop, add an item to your collection log, complete a combat task, finish an achievement diary, hit a boss kill count milestone or personal best, or unlock something on a Leagues world. Each one can be turned on or off separately, the message text can be edited, and you can optionally attach a screenshot as proof.
 
 In order to use this plugin you will need to create a webhook on your discord server. Below are instructions for how to do so:
 1. Open your Server Settings and head into the Integrations tab
@@ -17,6 +17,7 @@ Discord has a more detailed guide here: https://support.discord.com/hc/en-us/art
 - Combat task notifications come from the chat message, so the popup setting doesn't matter. If you have the repeat completion setting on for combat tasks you'll get a notification every time you redo one.
 - Loot from raids, chests and pickpocketing comes through RuneLite's Loot Tracker plugin, so leave that turned on if you want those.
 - Boss kill notifications come from the kill count chat message, so Filter out boss kill-count with spam-filter needs to be off in your game settings.
+- Leagues notifications only get sent on a Leagues world, and they're off by default. The settings are near the bottom of the list.
 - Screenshots are of the whole game window, chatbox included. If you don't want that posted to the channel, turn off the screenshot option for that event.
 - Keep your webhook URL to yourself, anyone with it can post to your channel.
 

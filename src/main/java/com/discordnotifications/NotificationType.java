@@ -9,6 +9,7 @@ public enum NotificationType
 	KILL_COUNT,
 	COMBAT_ACHIEVEMENT,
 	DIARY,
+	LEAGUES,
 	CLUE,
 	QUEST,
 	LEVEL,

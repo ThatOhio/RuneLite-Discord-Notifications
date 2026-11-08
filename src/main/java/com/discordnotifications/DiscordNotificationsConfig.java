@@ -551,6 +551,77 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean sendKillCountScreenshot() { return false; }
 
 	@ConfigSection(
+		name = "Leagues (League worlds only)",
+		description = "Area, relic, task and combat mastery messages. These only get sent while you're playing on a Leagues world.",
+		position = 998,
+		closedByDefault = true
+	)
+	String leaguesConfig = "leaguesConfig";
+
+	@ConfigItem(
+		keyName = "includeLeagues",
+		name = "Send Leagues Notifications",
+		description = "Send messages for Leagues events. Does nothing outside of a Leagues world, and Leagues and Deadman worlds in Webhook Settings has to be on Notify.",
+		section = leaguesConfig,
+		position = 1
+	)
+	default boolean includeLeagues() { return false; }
+
+	@ConfigItem(
+		keyName = "leaguesAreas",
+		name = "Area unlocks",
+		description = "Send when you unlock a new area.",
+		section = leaguesConfig,
+		position = 2
+	)
+	default boolean leaguesAreas() { return true; }
+
+	@ConfigItem(
+		keyName = "leaguesRelics",
+		name = "Relic unlocks",
+		description = "Send when you unlock a new relic.",
+		section = leaguesConfig,
+		position = 3
+	)
+	default boolean leaguesRelics() { return true; }
+
+	@ConfigItem(
+		keyName = "leaguesMasteries",
+		name = "Combat mastery unlocks",
+		description = "Send when you unlock a new combat mastery.",
+		section = leaguesConfig,
+		position = 4
+	)
+	default boolean leaguesMasteries() { return true; }
+
+	@ConfigItem(
+		keyName = "leaguesTasks",
+		name = "Task completions",
+		description = "Send when you finish a Leagues task.",
+		section = leaguesConfig,
+		position = 5
+	)
+	default boolean leaguesTasks() { return true; }
+
+	@ConfigItem(
+		keyName = "minLeaguesTaskTier",
+		name = "Minimum task tier",
+		description = "Only tasks of this tier or higher will send a message.",
+		section = leaguesConfig,
+		position = 6
+	)
+	default LeagueTaskTier minLeaguesTaskTier() { return LeagueTaskTier.EASY; }
+
+	@ConfigItem(
+		keyName = "sendLeaguesScreenshot",
+		name = "Include Leagues screenshots",
+		description = "Include a screenshot with the Discord notification for Leagues events.",
+		section = leaguesConfig,
+		position = 100
+	)
+	default boolean sendLeaguesScreenshot() { return false; }
+
+	@ConfigSection(
 		name = "Webhook overrides",
 		description = "Send an event to its own channel instead of the main webhook. Leave one blank to use the main webhook. Put each URL on its own line if you want more than one.",
 		position = 999,
@@ -647,6 +718,15 @@ public interface DiscordNotificationsConfig extends Config {
 		position = 10
 	)
 	default String killCountWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "leaguesWebhook",
+		name = "Leagues",
+		description = "Webhook URL(s) for Leagues events.",
+		section = webhookOverridesConfig,
+		position = 11
+	)
+	default String leaguesWebhook() { return ""; }
 
 	@ConfigSection(
 		name = "Advanced: message templates",
@@ -772,4 +852,40 @@ public interface DiscordNotificationsConfig extends Config {
 		position = 11
 	)
 	default String personalBestMessage() { return "$name has just set a new personal best at $boss$kc$time"; }
+
+	@ConfigItem(
+		keyName = "leaguesAreaMessage",
+		name = "Leagues Area Message",
+		description = "Sent when you unlock a Leagues area. Use $name and $area.",
+		section = messageTemplatesConfig,
+		position = 12
+	)
+	default String leaguesAreaMessage() { return "$name has just unlocked a new area: $area"; }
+
+	@ConfigItem(
+		keyName = "leaguesRelicMessage",
+		name = "Leagues Relic Message",
+		description = "Sent when you unlock a Leagues relic. Use $name and $relic.",
+		section = messageTemplatesConfig,
+		position = 13
+	)
+	default String leaguesRelicMessage() { return "$name has just unlocked a new relic: $relic"; }
+
+	@ConfigItem(
+		keyName = "leaguesMasteryMessage",
+		name = "Leagues Mastery Message",
+		description = "Sent when you unlock a Leagues combat mastery. Use $name and $mastery.",
+		section = messageTemplatesConfig,
+		position = 14
+	)
+	default String leaguesMasteryMessage() { return "$name has just unlocked a new combat mastery: $mastery"; }
+
+	@ConfigItem(
+		keyName = "leaguesTaskMessage",
+		name = "Leagues Task Message",
+		description = "Sent when you finish a Leagues task. Use $name, $task and $tier.",
+		section = messageTemplatesConfig,
+		position = 15
+	)
+	default String leaguesTaskMessage() { return "$name has just completed a Leagues task: $task ($tier)"; }
 }
