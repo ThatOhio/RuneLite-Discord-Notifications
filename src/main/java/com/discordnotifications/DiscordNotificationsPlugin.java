@@ -1,5 +1,6 @@
 package com.discordnotifications;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
@@ -10,8 +11,6 @@ import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-
-import net.runelite.client.util.Text;
 
 import javax.inject.Inject;
 import java.util.HashMap;
@@ -49,6 +48,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		);
 	private static final Pattern COLLECTION_LOG_ITEM_REGEX = Pattern.compile("New item added to your collection log:.*", Pattern.CASE_INSENSITIVE);
 	private static final Pattern COMBAT_TASK_REGEX = Pattern.compile("Congratulations, you've completed an? (?:\\w+) combat task:.*", Pattern.CASE_INSENSITIVE);
+	private static final Pattern TAG_REGEXP = Pattern.compile("(<[^>]*>)|(@[^@\\s]+@)");
 
 	private static final ImmutableList<String> PET_MESSAGES =
 		ImmutableList.of(
@@ -113,7 +113,7 @@ public class DiscordNotificationsPlugin extends Plugin
 				&& client.getWidget(InterfaceID.Questscroll.QUEST_TITLE) != null
 		) {
 			shouldSendQuestMessage = false;
-			String text = client.getWidget(InterfaceID.Questscroll.QUEST_TITLE).getText();
+			String text = sanitize(client.getWidget(InterfaceID.Questscroll.QUEST_TITLE).getText());
 			String questName = parseQuestCompletedWidget(text);
 			sendQuestMessage(questName);
 		}
@@ -168,7 +168,13 @@ public class DiscordNotificationsPlugin extends Plugin
 			return;
 		}
 
-		String chatMessage = event.getMessage();
+		String source = Strings.isNullOrEmpty(event.getName()) ? event.getSender() : event.getName();
+		if ("runelite".equals(source))
+		{
+			return;
+		}
+
+		String chatMessage = sanitize(event.getMessage());
 		if (config.includePets() && PET_MESSAGES.stream().anyMatch(chatMessage::contains))
 		{
 			sendPetMessage();
@@ -220,23 +226,20 @@ public class DiscordNotificationsPlugin extends Plugin
 					return;
 				}
 
-				String topText = client.getVarcStrValue(VarClientStr.NOTIFICATION_TOP_TEXT);
+				String topText = sanitize(client.getVarcStrValue(VarClientStr.NOTIFICATION_TOP_TEXT));
 				String bottomText = client.getVarcStrValue(VarClientStr.NOTIFICATION_BOTTOM_TEXT);
 
 				if (topText.equalsIgnoreCase("Collection log")
 						&& config.includeCollectionLogs())
 				{
-					String entry = Text.removeTags(bottomText).substring("New item:".length());
-					sendCollectionLogMessage(entry);
+					sendCollectionLogMessage(popupSubject(bottomText));
 				}
 
 				if (topText.equalsIgnoreCase("Combat Task Completed!")
 						&& config.includeCombatAchievements()
 						&& client.getVarbitValue(Varbits.COMBAT_ACHIEVEMENTS_POPUP) == 0)
 				{
-					String[] s = bottomText.split("<.*?>");
-					String task = s[1].replaceAll("[:?]", "");
-					sendCombatAchievementMessage(task);
+					sendCombatAchievementMessage(popupSubject(bottomText));
 				}
 
 				notificationStarted = false;
@@ -263,52 +266,27 @@ public class DiscordNotificationsPlugin extends Plugin
 
 	private void sendQuestMessage(String questName)
 	{
-		String localName = client.getLocalPlayer().getName();
-
-		String questMessageString = config.questMessage().replaceAll("\\$name", localName)
-														 .replaceAll("\\$quest", questName);
-
-		webhookService.sendMessage(questMessageString, config.sendQuestingScreenshot());
+		sendMessage(config.questMessage().replace("$quest", questName), config.sendQuestingScreenshot());
 	}
 
-	private void sendCombatAchievementMessage(String task) {
-		String localName = client.getLocalPlayer().getName();
-
-		String combatAchievementMessageString =
-			config.combatAchievementsMessage()
-				  .replaceAll("\\$name", localName)
-				  .replaceAll("\\$achievement", task);
-
-		webhookService.sendMessage(combatAchievementMessageString, config.sendCombatAchievementsScreenshot());
+	private void sendCombatAchievementMessage(String task)
+	{
+		sendMessage(config.combatAchievementsMessage().replace("$achievement", task), config.sendCombatAchievementsScreenshot());
 	}
 
-	private void sendCollectionLogMessage(String entry) {
-		String localName = client.getLocalPlayer().getName();
-
-		String collectionLogMessageString =
-			config.collectionLogMessage()
-				.replaceAll("\\$name", localName)
-				.replaceAll("\\$entry", entry);
-
-		webhookService.sendMessage(collectionLogMessageString, config.sendCollectionLogScreenshot());
+	private void sendCollectionLogMessage(String entry)
+	{
+		sendMessage(config.collectionLogMessage().replace("$entry", entry), config.sendCollectionLogScreenshot());
 	}
 
 	private void sendDeathMessage()
 	{
-		String localName = client.getLocalPlayer().getName();
-
-		String deathMessageString = config.deathMessage().replaceAll("\\$name", localName);
-
-		webhookService.sendMessage(deathMessageString, config.sendDeathScreenshot());
+		sendMessage(config.deathMessage(), config.sendDeathScreenshot());
 	}
 
 	private void sendClueMessage()
 	{
-		String localName = client.getLocalPlayer().getName();
-
-		String clueMessage = config.clueMessage().replaceAll("\\$name", localName);
-
-		webhookService.sendMessage(clueMessage, config.sendClueScreenshot());
+		sendMessage(config.clueMessage(), config.sendClueScreenshot());
 	}
 
 	private void sendLevelMessage()
@@ -321,17 +299,35 @@ public class DiscordNotificationsPlugin extends Plugin
 		leveledSkills.clear();
 
 		String message = buildLevelMessage(
-			client.getLocalPlayer().getName(),
 			levels,
 			client.getTotalLevel(),
 			config.levelMessage(),
 			config.andLevelMessage(),
 			config.includeTotalLevel() ? config.totalLevelMessage() : "");
 
-		webhookService.sendMessage(message, config.sendLevellingScreenshot());
+		sendMessage(message, config.sendLevellingScreenshot());
 	}
 
-	static String buildLevelMessage(String name, Map<String, Integer> levels, int totalLevel,
+	private void sendPetMessage()
+	{
+		sendMessage(config.petMessage(), config.sendPetScreenshot());
+	}
+
+	// The local player exists but has no name for the first ticks after login.
+	private void sendMessage(String message, boolean sendScreenshot)
+	{
+		Player player = client.getLocalPlayer();
+		String localName = player != null ? player.getName() : null;
+		if (Strings.isNullOrEmpty(localName))
+		{
+			log.debug("Dropping notification, local player name not available yet");
+			return;
+		}
+
+		webhookService.sendMessage(message.replace("$name", localName), sendScreenshot);
+	}
+
+	static String buildLevelMessage(Map<String, Integer> levels, int totalLevel,
 		String levelTemplate, String andTemplate, String totalTemplate)
 	{
 		StringBuilder message = new StringBuilder();
@@ -345,18 +341,28 @@ public class DiscordNotificationsPlugin extends Plugin
 		}
 		message.append(totalTemplate);
 
-		return message.toString()
-			.replace("$name", name)
-			.replace("$total", Integer.toString(totalLevel));
+		return message.toString().replace("$total", Integer.toString(totalLevel));
 	}
 
-	private void sendPetMessage()
+	static String sanitize(String text)
 	{
-		String localName = client.getLocalPlayer().getName();
+		if (text == null)
+		{
+			return "";
+		}
 
-		String petMessageString = config.petMessage().replaceAll("\\$name", localName);
+		return TAG_REGEXP.matcher(text.replace("<br>", " "))
+			.replaceAll("")
+			.replace('\u00A0', ' ')
+			.trim();
+	}
 
-		webhookService.sendMessage(petMessageString, config.sendPetScreenshot());
+	// Popup body is "New item: <col=..>Item</col>" or "Task Completed: <col=..>Task</col>".
+	static String popupSubject(String bottomText)
+	{
+		String text = sanitize(bottomText);
+		int colon = text.indexOf(':');
+		return colon < 0 ? text : text.substring(colon + 1).trim();
 	}
 
 	private void resetState()
