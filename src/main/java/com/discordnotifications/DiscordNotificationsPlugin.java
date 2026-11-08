@@ -1,54 +1,32 @@
 package com.discordnotifications;
 
+import com.discordnotifications.notifiers.ClueNotifier;
+import com.discordnotifications.notifiers.LevelNotifier;
+import com.discordnotifications.notifiers.QuestNotifier;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
-import net.runelite.api.gameval.InterfaceID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 
 import javax.inject.Inject;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static com.discordnotifications.notifiers.BaseNotifier.sanitize;
 
 @Slf4j
 @PluginDescriptor(name = "Discord Notifications")
 public class DiscordNotificationsPlugin extends Plugin
 {
-	private final Map<String, Integer> currentLevels = new HashMap<>();
-	private final Set<String> leveledSkills = new LinkedHashSet<>();
-	private boolean shouldSendLevelMessage = false;
-	private boolean shouldSendQuestMessage = false;
-	private boolean shouldSendClueMessage = false;
 	private boolean notificationStarted = false;
-	private int ticksWaited = 0;
 
-	private static final Pattern QUEST_PATTERN_1 = Pattern.compile(".+?ve\\.*? (?<verb>been|rebuilt|.+?ed)? ?(?:the )?'?(?<quest>.+?)'?(?: quest)?[!.]?$", Pattern.CASE_INSENSITIVE);
-	private static final Pattern QUEST_PATTERN_2 = Pattern.compile("'?(?<quest>.+?)'?(?: quest)? (?<verb>[a-z]\\w+?ed)?(?: f.*?)?[!.]?$", Pattern.CASE_INSENSITIVE);
-	private static final ImmutableList<String> RFD_TAGS = ImmutableList.of("Another Cook", "freed", "defeated", "saved");
-	private static final ImmutableList<String> WORD_QUEST_IN_NAME_TAGS =
-		ImmutableList.of(
-			"Another Cook",
-			"Doric",
-			"Heroes",
-			"Legends",
-			"Observatory",
-			"Olaf",
-			"Waterfall"
-		);
 	private static final Pattern COLLECTION_LOG_ITEM_REGEX = Pattern.compile("New item added to your collection log:.*", Pattern.CASE_INSENSITIVE);
 	private static final Pattern COMBAT_TASK_REGEX = Pattern.compile("Congratulations, you've completed an? (?:\\w+) combat task:.*", Pattern.CASE_INSENSITIVE);
-	private static final Pattern TAG_REGEXP = Pattern.compile("(<[^>]*>)|(@[^@\\s]+@)");
 
 	private static final ImmutableList<String> PET_MESSAGES =
 		ImmutableList.of(
@@ -65,6 +43,15 @@ public class DiscordNotificationsPlugin extends Plugin
 
 	@Inject
 	private DiscordWebhookService webhookService;
+
+	@Inject
+	private LevelNotifier levelNotifier;
+
+	@Inject
+	private QuestNotifier questNotifier;
+
+	@Inject
+	private ClueNotifier clueNotifier;
 
 	@Provides
 	DiscordNotificationsConfig provideConfig(ConfigManager configManager)
@@ -101,63 +88,15 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
-		boolean didCompleteClue = client.getWidget(InterfaceID.TrailRewardscreen.ITEMS) != null;
-
-		if (shouldSendClueMessage && didCompleteClue && config.includeClues()) {
-			shouldSendClueMessage = false;
-			sendClueMessage();
-		}
-
-		if (shouldSendQuestMessage
-				&& config.includeQuestComplete()
-				&& client.getWidget(InterfaceID.Questscroll.QUEST_TITLE) != null
-		) {
-			shouldSendQuestMessage = false;
-			String text = sanitize(client.getWidget(InterfaceID.Questscroll.QUEST_TITLE).getText());
-			String questName = parseQuestCompletedWidget(text);
-			sendQuestMessage(questName);
-		}
-
-		if (!shouldSendLevelMessage)
-		{
-			return;
-		}
-
-		if (ticksWaited < 2)
-		{
-			ticksWaited++;
-			return;
-		}
-
-		shouldSendLevelMessage = false;
-		ticksWaited = 0;
-		sendLevelMessage();
+		clueNotifier.onGameTick();
+		questNotifier.onGameTick();
+		levelNotifier.onGameTick();
 	}
 
 	@Subscribe
 	public void onStatChanged(StatChanged statChanged)
 	{
-		String skillName = statChanged.getSkill().getName();
-		int newLevel = statChanged.getLevel();
-
-		// The first StatChanged per skill after login seeds the cache. A level that is lower than the
-		// cached one is stale data, not a level-up, so only the cache is updated.
-		Integer previousLevel = currentLevels.put(skillName, newLevel);
-		if (previousLevel == null || previousLevel == 0 || newLevel <= previousLevel || !config.includeLevelling())
-		{
-			return;
-		}
-
-		// Certain activities can multilevel, check if any of the levels are valid for the message.
-		for (int level = previousLevel + 1; level <= newLevel; level++)
-		{
-			if (shouldSendForThisLevel(level))
-			{
-				leveledSkills.add(skillName);
-				shouldSendLevelMessage = true;
-				break;
-			}
-		}
+		levelNotifier.onStatChanged(statChanged);
 	}
 
 	@Subscribe
@@ -201,15 +140,8 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Subscribe
 	public void onWidgetLoaded(WidgetLoaded event)
 	{
-		int groupId = event.getGroupId();
-
-		if (groupId == InterfaceID.QUESTSCROLL) {
-			shouldSendQuestMessage = true;
-		}
-
-		if (groupId == InterfaceID.TRAIL_REWARDSCREEN) {
-			shouldSendClueMessage = true;
-		}
+		questNotifier.onWidgetLoaded(event);
+		clueNotifier.onWidgetLoaded(event);
 	}
 
 	@Subscribe
@@ -247,28 +179,6 @@ public class DiscordNotificationsPlugin extends Plugin
 		}
 	}
 
-	private boolean shouldSendForThisLevel(int level) {
-		return level >= config.minLevel()
-				&& levelMeetsIntervalRequirement(level);
-	}
-
-	private boolean levelMeetsIntervalRequirement(int level) {
-		int levelInterval = config.levelInterval();
-
-		if (config.linearLevelMax() > 0) {
-			levelInterval = (int) Math.max(Math.ceil(-.1*level + config.linearLevelMax()), 1);
-		}
-
-		return levelInterval <= 1
-				|| level == 99
-				|| level % levelInterval == 0;
-	}
-
-	private void sendQuestMessage(String questName)
-	{
-		sendMessage(config.questMessage().replace("$quest", questName), config.sendQuestingScreenshot());
-	}
-
 	private void sendCombatAchievementMessage(String task)
 	{
 		sendMessage(config.combatAchievementsMessage().replace("$achievement", task), config.sendCombatAchievementsScreenshot());
@@ -284,36 +194,12 @@ public class DiscordNotificationsPlugin extends Plugin
 		sendMessage(config.deathMessage(), config.sendDeathScreenshot());
 	}
 
-	private void sendClueMessage()
-	{
-		sendMessage(config.clueMessage(), config.sendClueScreenshot());
-	}
-
-	private void sendLevelMessage()
-	{
-		Map<String, Integer> levels = new LinkedHashMap<>();
-		for (String skill : leveledSkills)
-		{
-			levels.put(skill, currentLevels.get(skill));
-		}
-		leveledSkills.clear();
-
-		String message = buildLevelMessage(
-			levels,
-			client.getTotalLevel(),
-			config.levelMessage(),
-			config.andLevelMessage(),
-			config.includeTotalLevel() ? config.totalLevelMessage() : "");
-
-		sendMessage(message, config.sendLevellingScreenshot());
-	}
-
 	private void sendPetMessage()
 	{
 		sendMessage(config.petMessage(), config.sendPetScreenshot());
 	}
 
-	// The local player exists but has no name for the first ticks after login.
+	// Same as BaseNotifier.send; goes away once the remaining four notifiers move into notifiers/.
 	private void sendMessage(String message, boolean sendScreenshot)
 	{
 		Player player = client.getLocalPlayer();
@@ -327,36 +213,6 @@ public class DiscordNotificationsPlugin extends Plugin
 		webhookService.sendMessage(message.replace("$name", localName), sendScreenshot);
 	}
 
-	static String buildLevelMessage(Map<String, Integer> levels, int totalLevel,
-		String levelTemplate, String andTemplate, String totalTemplate)
-	{
-		StringBuilder message = new StringBuilder();
-		boolean first = true;
-		for (Map.Entry<String, Integer> entry : levels.entrySet())
-		{
-			message.append((first ? levelTemplate : andTemplate)
-				.replace("$skill", entry.getKey())
-				.replace("$level", entry.getValue().toString()));
-			first = false;
-		}
-		message.append(totalTemplate);
-
-		return message.toString().replace("$total", Integer.toString(totalLevel));
-	}
-
-	static String sanitize(String text)
-	{
-		if (text == null)
-		{
-			return "";
-		}
-
-		return TAG_REGEXP.matcher(text.replace("<br>", " "))
-			.replaceAll("")
-			.replace('\u00A0', ' ')
-			.trim();
-	}
-
 	// Popup body is "New item: <col=..>Item</col>" or "Task Completed: <col=..>Task</col>".
 	static String popupSubject(String bottomText)
 	{
@@ -367,49 +223,8 @@ public class DiscordNotificationsPlugin extends Plugin
 
 	private void resetState()
 	{
-		currentLevels.clear();
-		leveledSkills.clear();
-		shouldSendLevelMessage = false;
-		shouldSendQuestMessage = false;
-		shouldSendClueMessage = false;
-		ticksWaited = 0;
-	}
-
-	static String parseQuestCompletedWidget(final String text)
-	{
-		// "You have completed The Corsair Curse!"
-		final Matcher questMatch1 = QUEST_PATTERN_1.matcher(text);
-		// "'One Small Favour' completed!"
-		final Matcher questMatch2 = QUEST_PATTERN_2.matcher(text);
-		final Matcher questMatchFinal = questMatch1.matches() ? questMatch1 : questMatch2;
-
-		if (!questMatchFinal.matches())
-		{
-			return "Unable to find quest name!";
-		}
-
-		String quest = questMatchFinal.group("quest");
-		String verb = questMatchFinal.group("verb") != null ? questMatchFinal.group("verb") : "";
-
-		if (verb.contains("kind of"))
-		{
-			quest += " partial completion";
-		}
-		else if (verb.contains("completely"))
-		{
-			quest += " II";
-		}
-
-		if (RFD_TAGS.stream().anyMatch((quest + verb)::contains))
-		{
-			quest = "Recipe for Disaster - " + quest;
-		}
-
-		if (WORD_QUEST_IN_NAME_TAGS.stream().anyMatch(quest::contains))
-		{
-			quest += " Quest";
-		}
-
-		return quest;
+		levelNotifier.reset();
+		questNotifier.reset();
+		clueNotifier.reset();
 	}
 }
