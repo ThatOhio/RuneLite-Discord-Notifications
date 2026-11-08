@@ -37,6 +37,17 @@ public interface DiscordNotificationsConfig extends Config {
 		return ChatPrivacy.HIDE_SPLIT_PM;
 	}
 
+	@ConfigItem(
+			keyName = "seasonalWorlds",
+			name = "Leagues and Deadman worlds",
+			description = "Notify puts [Leagues] or [DMM] at the start of each message. Ignore doesn't send anything from those worlds.",
+			section = webhookConfig,
+			position = 2
+	)
+	default SeasonalWorlds seasonalWorlds() {
+		return SeasonalWorlds.NOTIFY;
+	}
+
 	// Levelling config section
 	@ConfigSection(
 			name = "Levelling",

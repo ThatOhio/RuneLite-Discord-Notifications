@@ -2,7 +2,9 @@ package com.discordnotifications.notifiers;
 
 import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
+import com.discordnotifications.WorldUtils;
 import com.google.common.collect.ImmutableMap;
+import net.runelite.api.WorldType;
 import net.runelite.api.events.StatChanged;
 
 import javax.inject.Singleton;
@@ -21,6 +23,7 @@ public class LevelNotifier extends BaseNotifier
 	private final Set<String> leveledSkills = new LinkedHashSet<>();
 	private boolean shouldSendLevelMessage = false;
 	private int ticksWaited = 0;
+	private Set<WorldType> seededWorldTypes = null;
 
 	@Override
 	public void reset()
@@ -29,10 +32,19 @@ public class LevelNotifier extends BaseNotifier
 		leveledSkills.clear();
 		shouldSendLevelMessage = false;
 		ticksWaited = 0;
+		seededWorldTypes = null;
 	}
 
 	public void onStatChanged(StatChanged statChanged)
 	{
+		// Hopping to a world with its own stats (Leagues, speedrun) would look like a level up
+		Set<WorldType> worldTypes = WorldUtils.separateStatsTypes(client.getWorldType());
+		if (!worldTypes.equals(seededWorldTypes))
+		{
+			reset();
+			seededWorldTypes = worldTypes;
+		}
+
 		String skillName = statChanged.getSkill().getName();
 		int newLevel = statChanged.getLevel();
 
