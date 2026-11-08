@@ -3,8 +3,10 @@ package com.discordnotifications.notifiers;
 import com.discordnotifications.DangerLevel;
 import com.discordnotifications.ItemStackFormatter;
 import com.discordnotifications.KillCountService;
+import com.discordnotifications.LootValueBasis;
 import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
+import com.discordnotifications.WildcardList;
 import com.discordnotifications.WorldUtils;
 import com.google.common.collect.ImmutableMap;
 import lombok.Value;
@@ -149,12 +151,8 @@ public class LootNotifier extends BaseNotifier
 		List<ItemStackFormatter.Stack> stacks = new ArrayList<>(quantities.size());
 		quantities.forEach((id, quantity) -> stacks.add(itemStackFormatter.stackWithStorePrice(id, quantity)));
 
-		List<ItemStackFormatter.Stack> qualifying = qualifying(stacks, config.minLootValue());
-		if (qualifying.isEmpty() && LOOT_CHEST.equalsIgnoreCase(source))
-		{
-			qualifying = lootChestStandIn(stacks, config.minLootValue());
-		}
-
+		List<ItemStackFormatter.Stack> qualifying = qualifying(stacks, source, config.minLootValue(), config.lootValueBasis(),
+			WildcardList.parse(config.lootAllowlist()), WildcardList.parse(config.lootDenylist()));
 		if (qualifying.isEmpty())
 		{
 			return;
@@ -173,9 +171,25 @@ public class LootNotifier extends BaseNotifier
 		return BA_GAMBLE.equals(name) || name.regionMatches(true, 0, CLUE_SCROLL, 0, CLUE_SCROLL.length());
 	}
 
-	static List<ItemStackFormatter.Stack> qualifying(List<ItemStackFormatter.Stack> stacks, long minValue)
+	static List<ItemStackFormatter.Stack> qualifying(List<ItemStackFormatter.Stack> stacks, String source, long minValue, LootValueBasis basis, WildcardList allowlist, WildcardList denylist)
 	{
-		return stacks.stream().filter(stack -> stack.getTotalPrice() >= minValue).collect(Collectors.toList());
+		List<ItemStackFormatter.Stack> eligible = stacks.stream()
+			.filter(stack -> !denylist.matches(stack.getName()))
+			.collect(Collectors.toList());
+
+		if (basis == LootValueBasis.DROP && ItemStackFormatter.totalValue(eligible) >= minValue)
+		{
+			return eligible;
+		}
+
+		List<ItemStackFormatter.Stack> qualifying = eligible.stream()
+			.filter(stack -> allowlist.matches(stack.getName())
+				|| (basis == LootValueBasis.ITEM ? stack.getUnitPrice() : stack.getTotalPrice()) >= minValue)
+			.collect(Collectors.toList());
+
+		return qualifying.isEmpty() && basis != LootValueBasis.DROP && LOOT_CHEST.equalsIgnoreCase(source)
+			? lootChestStandIn(eligible, minValue)
+			: qualifying;
 	}
 
 	// PK loot keys hold lots of small stacks, so the whole chest counts and its best stack gets listed

@@ -410,19 +410,46 @@ public interface DiscordNotificationsConfig extends Config {
 
 	@ConfigItem(
 		keyName = "minLootValue",
-		name = "Minimum stack value",
-		description = "A drop is only sent if one stack in it is worth at least this much, and only those stacks get listed.",
+		name = "Minimum value",
+		description = "A drop is only sent if it's worth at least this much. Value basis picks what gets compared.",
 		section = lootConfig,
 		position = 2
 	)
 	default int minLootValue() { return 100000; }
 
 	@ConfigItem(
+		keyName = "lootValueBasis",
+		name = "Value basis",
+		description = "What has to reach the minimum. Single item is the price of one, whole stack is price times quantity, whole drop adds up everything and lists all of it.",
+		section = lootConfig,
+		position = 3
+	)
+	default LootValueBasis lootValueBasis() { return LootValueBasis.STACK; }
+
+	@ConfigItem(
+		keyName = "lootAllowlist",
+		name = "Always send",
+		description = "Items that send a message no matter what they're worth. Put each on its own line, or separate them with commas. Use * as a wildcard, like Tumeken's shadow*",
+		section = lootConfig,
+		position = 4
+	)
+	default String lootAllowlist() { return ""; }
+
+	@ConfigItem(
+		keyName = "lootDenylist",
+		name = "Never send",
+		description = "Items that never send a message or count toward the minimum, even if they're on Always send. Same format as Always send.",
+		section = lootConfig,
+		position = 5
+	)
+	default String lootDenylist() { return ""; }
+
+	@ConfigItem(
 		keyName = "includePlayerLoot",
 		name = "Include PvP loot",
 		description = "Also send loot from killing other players. Safe areas like Last Man Standing never send.",
 		section = lootConfig,
-		position = 3
+		position = 6
 	)
 	default boolean includePlayerLoot() { return true; }
 
@@ -607,7 +634,7 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "lootMessage",
 		name = "Loot Message",
-		description = "Sent when you get a valuable drop. Use $name, $items (only the stacks over your minimum), $value (the whole drop), $source and $kc (like: (KC 1,234)). Put $kc straight after another word, it adds its own space and is blank if the kill count isn't known.",
+		description = "Sent when you get a valuable drop. Use $name, $items (only the stacks that passed your loot filters), $value (the whole drop), $source and $kc (like: (KC 1,234)). Put $kc straight after another word, it adds its own space and is blank if the kill count isn't known.",
 		section = messageTemplatesConfig,
 		position = 8
 	)

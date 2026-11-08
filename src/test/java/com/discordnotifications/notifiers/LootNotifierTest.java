@@ -1,7 +1,9 @@
 package com.discordnotifications.notifiers;
 
 import com.discordnotifications.ItemStackFormatter.Stack;
+import com.discordnotifications.LootValueBasis;
 import com.discordnotifications.Template;
+import com.discordnotifications.WildcardList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -15,19 +17,31 @@ public class LootNotifierTest
 {
 	private static final Stack WHIP = new Stack("Abyssal whip", 1, 1_500_000);
 	private static final Stack LAWS = new Stack("Law rune", 10, 200);
+	private static final Stack ONYX_TIPS = new Stack("Onyx bolt tips", 1_000, 9_000);
+	private static final List<Stack> CHEST = Arrays.asList(new Stack("Shark", 50, 800), new Stack("Rune platebody", 1, 38_000), new Stack("Coins", 30_000, 1));
+
+	private static List<Stack> qualifying(List<Stack> stacks, LootValueBasis basis, long minValue, String allowlist, String denylist)
+	{
+		return LootNotifier.qualifying(stacks, "Vorkath", minValue, basis, WildcardList.parse(allowlist), WildcardList.parse(denylist));
+	}
+
+	private static List<Stack> chestQualifying(LootValueBasis basis, long minValue, String denylist)
+	{
+		return LootNotifier.qualifying(CHEST, "Loot Chest", minValue, basis, WildcardList.parse(""), WildcardList.parse(denylist));
+	}
 
 	@Test
 	public void onlyStacksOverTheMinimumQualify()
 	{
-		assertEquals(Collections.singletonList(WHIP), LootNotifier.qualifying(Arrays.asList(WHIP, LAWS), 100_000));
-		assertTrue(LootNotifier.qualifying(Collections.singletonList(LAWS), 100_000).isEmpty());
+		assertEquals(Collections.singletonList(WHIP), qualifying(Arrays.asList(WHIP, LAWS), LootValueBasis.STACK, 100_000, "", ""));
+		assertTrue(qualifying(Collections.singletonList(LAWS), LootValueBasis.STACK, 100_000, "", "").isEmpty());
 	}
 
 	@Test
 	public void minimumIsInclusive()
 	{
-		assertEquals(1, LootNotifier.qualifying(Collections.singletonList(new Stack("Item", 1, 100_000)), 100_000).size());
-		assertTrue(LootNotifier.qualifying(Collections.singletonList(new Stack("Item", 1, 99_999)), 100_000).isEmpty());
+		assertEquals(1, qualifying(Collections.singletonList(new Stack("Item", 1, 100_000)), LootValueBasis.STACK, 100_000, "", "").size());
+		assertTrue(qualifying(Collections.singletonList(new Stack("Item", 1, 99_999)), LootValueBasis.STACK, 100_000, "", "").isEmpty());
 	}
 
 	@Test
@@ -35,7 +49,7 @@ public class LootNotifierTest
 	{
 		Stack huge = new Stack("Item", 2_000_000, 5_000);
 		assertEquals(10_000_000_000L, huge.getTotalPrice());
-		assertEquals(1, LootNotifier.qualifying(Collections.singletonList(huge), 100_000).size());
+		assertEquals(1, qualifying(Collections.singletonList(huge), LootValueBasis.STACK, 100_000, "", "").size());
 	}
 
 	@Test
@@ -61,6 +75,82 @@ public class LootNotifierTest
 		assertEquals(Collections.singletonList(chest.get(0)), LootNotifier.lootChestStandIn(chest, 100_000));
 		assertTrue(LootNotifier.lootChestStandIn(chest, 200_000).isEmpty());
 		assertTrue(LootNotifier.lootChestStandIn(Collections.emptyList(), 0).isEmpty());
+	}
+
+	@Test
+	public void itemBasisComparesThePriceOfOne()
+	{
+		assertTrue(qualifying(Collections.singletonList(ONYX_TIPS), LootValueBasis.ITEM, 100_000, "", "").isEmpty());
+		assertEquals(Collections.singletonList(WHIP), qualifying(Arrays.asList(WHIP, ONYX_TIPS), LootValueBasis.ITEM, 100_000, "", ""));
+	}
+
+	@Test
+	public void stackBasisComparesPriceTimesQuantity()
+	{
+		assertEquals(Collections.singletonList(ONYX_TIPS), qualifying(Collections.singletonList(ONYX_TIPS), LootValueBasis.STACK, 100_000, "", ""));
+	}
+
+	@Test
+	public void dropBasisAddsEverythingUpAndListsIt()
+	{
+		List<Stack> drop = Arrays.asList(new Stack("Shark", 50, 800), new Stack("Coins", 70_000, 1));
+		assertEquals(drop, qualifying(drop, LootValueBasis.DROP, 100_000, "", ""));
+		assertTrue(qualifying(drop, LootValueBasis.DROP, 110_001, "", "").isEmpty());
+	}
+
+	@Test
+	public void deniedStacksDontCountTowardTheDrop()
+	{
+		List<Stack> drop = Arrays.asList(ONYX_TIPS, LAWS);
+		assertTrue(qualifying(drop, LootValueBasis.DROP, 100_000, "", "Onyx bolt tips").isEmpty());
+		assertEquals(Collections.singletonList(LAWS), qualifying(drop, LootValueBasis.DROP, 1_000, "", "onyx*"));
+	}
+
+	@Test
+	public void denylistBlocksAValuableStack()
+	{
+		assertTrue(qualifying(Collections.singletonList(ONYX_TIPS), LootValueBasis.STACK, 100_000, "", "Onyx bolt tips").isEmpty());
+	}
+
+	@Test
+	public void denylistWinsOverAllowlist()
+	{
+		assertTrue(qualifying(Collections.singletonList(ONYX_TIPS), LootValueBasis.STACK, 100_000, "Onyx*", "*bolt tips").isEmpty());
+	}
+
+	@Test
+	public void allowlistIgnoresPriceOnEveryBasis()
+	{
+		Stack shadow = new Stack("Tumeken's shadow (uncharged)", 1, 0);
+		for (LootValueBasis basis : LootValueBasis.values())
+		{
+			assertEquals(Collections.singletonList(shadow), qualifying(Arrays.asList(shadow, LAWS), basis, 100_000, "Tumeken's shadow*", ""));
+		}
+	}
+
+	@Test
+	public void singleItemChatDropGetsThroughTheAllowlist()
+	{
+		Stack marlin = new Stack("Swift marlin", 1, 6_000);
+		List<Stack> drop = Collections.singletonList(marlin);
+		assertTrue(qualifying(drop, LootValueBasis.STACK, 100_000, "", "").isEmpty());
+		assertEquals(drop, LootNotifier.qualifying(drop, "Deep sea trawling", 100_000, LootValueBasis.STACK, WildcardList.parse("Swift marlin"), WildcardList.parse("")));
+	}
+
+	@Test
+	public void lootChestFallbackOnlyAppliesToItemAndStack()
+	{
+		assertEquals(Collections.singletonList(CHEST.get(0)), chestQualifying(LootValueBasis.ITEM, 100_000, ""));
+		assertEquals(Collections.singletonList(CHEST.get(0)), chestQualifying(LootValueBasis.STACK, 100_000, ""));
+		assertEquals(CHEST, chestQualifying(LootValueBasis.DROP, 100_000, ""));
+		assertTrue(chestQualifying(LootValueBasis.DROP, 200_000, "").isEmpty());
+	}
+
+	@Test
+	public void lootChestFallbackNeverPicksADeniedStack()
+	{
+		assertEquals(Collections.singletonList(CHEST.get(1)), chestQualifying(LootValueBasis.STACK, 60_000, "Shark"));
+		assertTrue(chestQualifying(LootValueBasis.STACK, 100_000, "Shark").isEmpty());
 	}
 
 	@Test
