@@ -607,20 +607,20 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "petTemplate",
 		name = "Pet Message",
-		description = "Sent when you get a pet. Use $name, $pet, $kc (like: at 1,234 kills) and $duplicate. Put $kc and $duplicate straight after another word, they add their own space and are blank when unknown.",
+		description = "Sent when you get a pet. Use $name, $pet, $source, $from (like: from Zulrah), $kc (like: (KC 1,234)), $milestone (like: at 5,000,000 XP, only used when there's no $kc) and $duplicate. Put $from, $kc, $milestone and $duplicate straight after another word, they add their own space and are blank when unknown.",
 		section = messageTemplatesConfig,
 		position = 5
 	)
-	default String petMessage() { return "$name just got a pet: $pet$kc$duplicate"; }
+	default String petMessage() { return "$name just got a pet: $pet$from$kc$milestone$duplicate"; }
 
 	@ConfigItem(
 		keyName = "collectionLogMessage",
 		name = "Collection log Message",
-		description = "Sent when you fill a collection log slot. Use $name, $entry, $completed, $total and $progress (like: (123/1,692)). Put $progress straight after another word, it adds its own space. The counts are blank if the game hasn't sent them yet, opening the Character Summary tab fixes that.",
+		description = "Sent when you fill a collection log slot. Use $name, $entry, $completed, $total, $progress (like: (123/1,692)), $source, $from (like: from Zulrah) and $kc (like: (KC 1,234)). Put $progress, $from and $kc straight after another word, they add their own space. The counts are blank if the game hasn't sent them yet, opening the Character Summary tab fixes that. $source, $from and $kc are blank if the item didn't come from a drop in the last 30 seconds.",
 		section = messageTemplatesConfig,
 		position = 6
 	)
-	default String collectionLogMessage() { return "$name has just completed a collection log: $entry$progress"; }
+	default String collectionLogMessage() { return "$name added $entry to their collection log$progress$from$kc"; }
 
 	@ConfigItem(
 		keyName = "combatAchievementsMessage",

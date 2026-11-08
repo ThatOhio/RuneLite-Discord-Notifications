@@ -305,7 +305,7 @@ public class LootNotifier extends BaseNotifier
 		placeholders.put("items", ItemStackFormatter.format(qualifying));
 		placeholders.put("value", QuantityFormatter.quantityToStackSize(ItemStackFormatter.totalValue(drop)));
 		placeholders.put("source", source);
-		placeholders.put("kc", kc == null ? "" : " (KC " + QuantityFormatter.formatNumber(kc) + ")");
+		placeholders.put("kc", KillCountService.kcText(kc));
 		return placeholders;
 	}
 

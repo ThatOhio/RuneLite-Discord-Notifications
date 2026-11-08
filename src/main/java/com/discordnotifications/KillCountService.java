@@ -1,5 +1,6 @@
 package com.discordnotifications;
 
+import com.discordnotifications.notifiers.BaseNotifier;
 import com.discordnotifications.notifiers.ClueNotifier;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -26,10 +27,12 @@ import net.runelite.client.plugins.chatcommands.ChatCommandsPlugin;
 import net.runelite.client.plugins.loottracker.LootReceived;
 import net.runelite.client.plugins.loottracker.LootTrackerConfig;
 import net.runelite.client.plugins.loottracker.LootTrackerPlugin;
+import net.runelite.client.util.QuantityFormatter;
 import net.runelite.http.api.loottracker.LootRecordType;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
@@ -52,6 +55,7 @@ public class KillCountService
 	private static final String CHAT_COMMANDS_PLUGIN = ChatCommandsPlugin.class.getSimpleName().toLowerCase(Locale.ROOT);
 	private static final String LOOT_TRACKER_PLUGIN = LootTrackerPlugin.class.getSimpleName().toLowerCase(Locale.ROOT);
 	private static final int SLAYER_LOG_CAP = 65535;
+	private static final Duration RECENT_DROP = Duration.ofSeconds(30);
 
 	private static final String GAUNTLET_BOSS = "Crystalline Hunllef";
 	private static final String CG_BOSS = "Corrupted Hunllef";
@@ -320,6 +324,31 @@ public class KillCountService
 
 		int kc = Math.max(storedKc(type, source, 0), counts.getOrDefault(cacheKey(type, source), 0));
 		return kc > 0 ? kc : null;
+	}
+
+	public Drop getRecentDrop()
+	{
+		return isRecent(lastDrop, Instant.now()) ? lastDrop : null;
+	}
+
+	static boolean isRecent(Drop drop, Instant now)
+	{
+		return drop != null && Duration.between(drop.getTime(), now).compareTo(RECENT_DROP) <= 0;
+	}
+
+	public Map<String, String> sourcePlaceholders(Drop drop)
+	{
+		return sourcePlaceholders(BaseNotifier.sanitize(drop.getSource()), getKillCount(drop.getType(), drop.getSource()));
+	}
+
+	static Map<String, String> sourcePlaceholders(String source, Integer kc)
+	{
+		return ImmutableMap.of("source", source, "from", " from " + source, "kc", kcText(kc));
+	}
+
+	public static String kcText(Integer kc)
+	{
+		return kc == null ? "" : " (KC " + QuantityFormatter.formatNumber(kc) + ")";
 	}
 
 	private void recordLoot(LootRecordType type, String source, Collection<ItemStack> items)

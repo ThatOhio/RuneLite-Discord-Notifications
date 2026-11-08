@@ -1,5 +1,6 @@
 package com.discordnotifications.notifiers;
 
+import com.discordnotifications.KillCountService;
 import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import com.discordnotifications.WildcardList;
@@ -9,16 +10,19 @@ import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.client.callback.ClientThread;
+import net.runelite.client.game.ItemManager;
 import net.runelite.client.util.QuantityFormatter;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Singleton
 public class CollectionLogNotifier extends BaseNotifier
@@ -30,6 +34,12 @@ public class CollectionLogNotifier extends BaseNotifier
 
 	@Inject
 	private ClientThread clientThread;
+
+	@Inject
+	private ItemManager itemManager;
+
+	@Inject
+	private KillCountService killCountService;
 
 	private final Set<String> entriesThisTick = new HashSet<>();
 	private int entriesTick = -1;
@@ -129,12 +139,31 @@ public class CollectionLogNotifier extends BaseNotifier
 			placeholders.put("progress", " (" + completedText + "/" + totalText + ")");
 		}
 
+		KillCountService.Drop drop = killCountService.getRecentDrop();
+		if (drop != null && cameFrom(entry, itemNames(drop)))
+		{
+			placeholders.putAll(killCountService.sourcePlaceholders(drop));
+		}
+
 		send(Notification.builder()
 			.type(NotificationType.COLLECTION_LOG)
 			.text(config.collectionLogMessage())
 			.placeholders(placeholders)
 			.screenshot(config.sendCollectionLogScreenshot())
 			.build());
+	}
+
+	private List<String> itemNames(KillCountService.Drop drop)
+	{
+		return drop.getItems().stream()
+			.map(item -> itemManager.getItemComposition(item.getId()).getMembersName())
+			.collect(Collectors.toList());
+	}
+
+	// A drop set from chat has no items yet, pets are never part of a drop
+	static boolean cameFrom(String entry, List<String> dropItems)
+	{
+		return dropItems.isEmpty() || PetNotifier.isPet(entry) || dropItems.stream().anyMatch(entry::equalsIgnoreCase);
 	}
 
 	static String parseEntry(String message)

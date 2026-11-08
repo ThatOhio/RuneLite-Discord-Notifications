@@ -1,9 +1,14 @@
 package com.discordnotifications;
 
 import com.discordnotifications.KillCountService.BossKc;
+import com.discordnotifications.KillCountService.Drop;
 import net.runelite.api.gameval.NpcID;
 import net.runelite.api.gameval.VarPlayerID;
+import net.runelite.http.api.loottracker.LootRecordType;
 import org.junit.Test;
+
+import java.time.Instant;
+import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -12,6 +17,30 @@ import static org.junit.Assert.assertTrue;
 
 public class KillCountServiceTest
 {
+	@Test
+	public void dropsGoStaleAfterThirtySeconds()
+	{
+		Instant time = Instant.parse("2026-11-08T12:00:00Z");
+		Drop drop = new Drop("Zulrah", LootRecordType.NPC, Collections.emptyList(), time);
+		assertTrue(KillCountService.isRecent(drop, time.plusSeconds(30)));
+		assertFalse(KillCountService.isRecent(drop, time.plusSeconds(31)));
+		assertFalse(KillCountService.isRecent(null, time));
+	}
+
+	@Test
+	public void sourceAndKcAddTheirOwnSpace()
+	{
+		assertEquals("Got a fang from Zulrah (KC 1,234)",
+			Template.render("Got a fang$from$kc", KillCountService.sourcePlaceholders("Zulrah", 1234)));
+	}
+
+	@Test
+	public void unknownKcLeavesNothingBehind()
+	{
+		assertEquals("Got a fang from Zulrah!",
+			Template.render("Got a fang$from$kc!", KillCountService.sourcePlaceholders("Zulrah", null)));
+	}
+
 	@Test
 	public void parsesKillCounts()
 	{

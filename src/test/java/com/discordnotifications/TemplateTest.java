@@ -31,6 +31,13 @@ public class TemplateTest
 	}
 
 	@Test
+	public void selfSpacingPlaceholdersLeaveNoGapWhenUnknown()
+	{
+		assertEquals("Zezima added Twisted bow to their collection log",
+			Template.render("$name added $entry to their collection log$progress$from$kc", ImmutableMap.of("name", "Zezima", "entry", "Twisted bow")));
+	}
+
+	@Test
 	public void dollarWithoutANameIsLeftAlone()
 	{
 		assertEquals("$5 and $", Template.render("$5 and $", Collections.emptyMap()));
