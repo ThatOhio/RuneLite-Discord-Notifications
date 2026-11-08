@@ -12,8 +12,7 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigSection(
 			name = "Webhook Settings",
 			description = "The config for webhook content notifications",
-			position = 0,
-			closedByDefault = true
+			position = 0
 	)
 	String webhookConfig = "webhookConfig";
 
@@ -87,7 +86,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 3
 	)
 	default int levelInterval() {
-		return 1;
+		return 10;
 	}
 
 	@ConfigItem(
@@ -98,7 +97,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 4
 	)
 	default int levelIntervalOverride() {
-		return 0;
+		return 90;
 	}
 
 	@ConfigItem(
@@ -109,7 +108,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 5
 	)
 	default boolean notifyVirtualLevels() {
-		return false;
+		return true;
 	}
 
 	@ConfigItem(
@@ -120,7 +119,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 6
 	)
 	default boolean notifyCombatLevel() {
-		return true;
+		return false;
 	}
 
 	@ConfigItem(
@@ -131,7 +130,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 100
 	)
 	default boolean sendLevellingScreenshot() {
-		return false;
+		return true;
 	}
 
 	@ConfigItem(
@@ -173,7 +172,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 100
 	)
 	default boolean sendQuestingScreenshot() {
-		return false;
+		return true;
 	}
 	// End questing config section
 
@@ -220,7 +219,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 100
 	)
 	default boolean sendDeathScreenshot() {
-		return false;
+		return true;
 	}
 	// End death config section
 
@@ -267,7 +266,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 100
 	)
 	default boolean sendClueScreenshot() {
-		return false;
+		return true;
 	}
 
 	@ConfigItem(
@@ -314,7 +313,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 100
 	)
 	default boolean sendPetScreenshot() {
-		return false;
+		return true;
 	}
 
 	@ConfigSection(
@@ -351,7 +350,7 @@ public interface DiscordNotificationsConfig extends Config {
 		position = 3
 	)
 	default boolean sendCollectionLogScreenshot() {
-		return false;
+		return true;
 	}
 
 	@ConfigSection(
@@ -388,7 +387,7 @@ public interface DiscordNotificationsConfig extends Config {
 		position = 100
 	)
 	default boolean sendCombatAchievementsScreenshot() {
-		return false;
+		return true;
 	}
 
 	@ConfigSection(
@@ -460,11 +459,170 @@ public interface DiscordNotificationsConfig extends Config {
 		section = lootConfig,
 		position = 100
 	)
-	default boolean sendLootScreenshot() { return false; }
+	default boolean sendLootScreenshot() { return true; }
+
+	@ConfigSection(
+		name = "Achievement Diaries",
+		description = "The config for achievement diaries",
+		position = 8,
+		closedByDefault = true
+	)
+	String diaryConfig = "diaryConfig";
+
+	@ConfigItem(
+		keyName = "includeDiaries",
+		name = "Achievement Diary Notifications",
+		description = "Message to send to Discord when you finish an achievement diary",
+		section = diaryConfig,
+		position = 1
+	)
+	default boolean includeDiaries() { return false; }
+
+	@ConfigItem(
+		keyName = "minDiaryDifficulty",
+		name = "Minimum difficulty",
+		description = "Only diaries of this difficulty or higher will send a message.",
+		section = diaryConfig,
+		position = 2
+	)
+	default DiaryDifficulty minDiaryDifficulty() { return DiaryDifficulty.EASY; }
+
+	@ConfigItem(
+		keyName = "sendDiaryScreenshot",
+		name = "Include achievement diary screenshots",
+		description = "Include a screenshot with the Discord notification when you finish an achievement diary",
+		section = diaryConfig,
+		position = 100
+	)
+	default boolean sendDiaryScreenshot() { return true; }
+
+	@ConfigSection(
+		name = "Boss Kills",
+		description = "The config for boss kill count milestones and personal bests",
+		position = 9,
+		closedByDefault = true
+	)
+	String killCountConfig = "killCountConfig";
+
+	@ConfigItem(
+		keyName = "includeKillCounts",
+		name = "Send Boss Kill Notifications",
+		description = "Send messages when you hit a boss kill count milestone or get a new personal best. Filter out boss kill-count with spam-filter has to be off in your game settings.",
+		section = killCountConfig,
+		position = 1
+	)
+	default boolean includeKillCounts() { return false; }
+
+	@ConfigItem(
+		keyName = "killCountInterval",
+		name = "Send every X kills",
+		description = "Only kill counts that are a multiple of this value are sent. 0 turns this off if you only want first kills and personal bests.",
+		section = killCountConfig,
+		position = 2
+	)
+	default int killCountInterval() { return 50; }
+
+	@ConfigItem(
+		keyName = "notifyFirstKill",
+		name = "First kill",
+		description = "Also send your first kill of a boss.",
+		section = killCountConfig,
+		position = 3
+	)
+	default boolean notifyFirstKill() { return true; }
+
+	@ConfigItem(
+		keyName = "notifyPersonalBests",
+		name = "Personal bests",
+		description = "Also send when you beat your best time, whatever your kill count is.",
+		section = killCountConfig,
+		position = 4
+	)
+	default boolean notifyPersonalBests() { return true; }
+
+	@ConfigItem(
+		keyName = "sendKillCountScreenshot",
+		name = "Include boss kill screenshots",
+		description = "Include a screenshot with the Discord notification for a boss kill milestone or personal best.",
+		section = killCountConfig,
+		position = 100
+	)
+	default boolean sendKillCountScreenshot() { return true; }
+
+	@ConfigSection(
+		name = "Leagues (League worlds only)",
+		description = "Area, relic, task and combat mastery messages, only sent on a Leagues world",
+		position = 998,
+		closedByDefault = true
+	)
+	String leaguesConfig = "leaguesConfig";
+
+	@ConfigItem(
+		keyName = "includeLeagues",
+		name = "Send Leagues Notifications",
+		description = "Send messages for Leagues events. Does nothing outside of a Leagues world, and Leagues and Deadman worlds in Webhook Settings has to be on Notify.",
+		section = leaguesConfig,
+		position = 1
+	)
+	default boolean includeLeagues() { return false; }
+
+	@ConfigItem(
+		keyName = "leaguesAreas",
+		name = "Area unlocks",
+		description = "Send when you unlock a new area.",
+		section = leaguesConfig,
+		position = 2
+	)
+	default boolean leaguesAreas() { return true; }
+
+	@ConfigItem(
+		keyName = "leaguesRelics",
+		name = "Relic unlocks",
+		description = "Send when you unlock a new relic.",
+		section = leaguesConfig,
+		position = 3
+	)
+	default boolean leaguesRelics() { return true; }
+
+	@ConfigItem(
+		keyName = "leaguesMasteries",
+		name = "Combat mastery unlocks",
+		description = "Send when you unlock a new combat mastery.",
+		section = leaguesConfig,
+		position = 4
+	)
+	default boolean leaguesMasteries() { return true; }
+
+	@ConfigItem(
+		keyName = "leaguesTasks",
+		name = "Task completions",
+		description = "Send when you finish a Leagues task.",
+		section = leaguesConfig,
+		position = 5
+	)
+	default boolean leaguesTasks() { return true; }
+
+	@ConfigItem(
+		keyName = "minLeaguesTaskTier",
+		name = "Minimum task tier",
+		description = "Only tasks of this tier or higher will send a message.",
+		section = leaguesConfig,
+		position = 6
+	)
+	default LeagueTaskTier minLeaguesTaskTier() { return LeagueTaskTier.EASY; }
+
+	@ConfigItem(
+		keyName = "sendLeaguesScreenshot",
+		name = "Include Leagues screenshots",
+		description = "Include a screenshot with the Discord notification for Leagues events.",
+		section = leaguesConfig,
+		position = 100
+	)
+	default boolean sendLeaguesScreenshot() { return true; }
 
 	@ConfigSection(
 		name = "Webhook overrides",
-		description = "Send an event to its own channel instead of the main webhook. Leave one blank to use the main webhook. Put each URL on its own line if you want more than one.",
+		description = "Give an event its own channel, leave it blank to use the main webhook",
 		position = 999,
 		closedByDefault = true
 	)
@@ -541,6 +699,33 @@ public interface DiscordNotificationsConfig extends Config {
 		position = 8
 	)
 	default String lootWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "diaryWebhook",
+		name = "Achievement diaries",
+		description = "Webhook URL(s) for achievement diaries.",
+		section = webhookOverridesConfig,
+		position = 9
+	)
+	default String diaryWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "killCountWebhook",
+		name = "Boss kills",
+		description = "Webhook URL(s) for boss kill milestones and personal bests.",
+		section = webhookOverridesConfig,
+		position = 10
+	)
+	default String killCountWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "leaguesWebhook",
+		name = "Leagues",
+		description = "Webhook URL(s) for Leagues events.",
+		section = webhookOverridesConfig,
+		position = 11
+	)
+	default String leaguesWebhook() { return ""; }
 
 	@ConfigSection(
 		name = "Advanced: message templates",
@@ -639,4 +824,67 @@ public interface DiscordNotificationsConfig extends Config {
 		position = 8
 	)
 	default String lootMessage() { return "$name has just received $items from $source$kc, whole drop worth $value gp"; }
+
+	@ConfigItem(
+		keyName = "diaryMessage",
+		name = "Achievement Diary Message",
+		description = "Sent when you finish an achievement diary. Use $name, $area, $difficulty and $totalDiaries (how many you've finished across every area and difficulty).",
+		section = messageTemplatesConfig,
+		position = 9
+	)
+	default String diaryMessage() { return "$name has just completed the $difficulty $area diary - Total diaries: $totalDiaries"; }
+
+	@ConfigItem(
+		keyName = "killCountMessage",
+		name = "Boss Kill Message",
+		description = "Sent on a kill count milestone or first kill. Use $name, $boss, $kc (like: (KC 1,234)) and $time (like: in 1:23.40). Put $kc and $time straight after another word, they add their own space. $time is blank if the boss doesn't give one.",
+		section = messageTemplatesConfig,
+		position = 10
+	)
+	default String killCountMessage() { return "$name has just beaten $boss$kc$time"; }
+
+	@ConfigItem(
+		keyName = "personalBestMessage",
+		name = "Personal Best Message",
+		description = "Sent when you beat your best time. Uses the same placeholders as Boss Kill Message.",
+		section = messageTemplatesConfig,
+		position = 11
+	)
+	default String personalBestMessage() { return "$name has just set a new personal best at $boss$kc$time"; }
+
+	@ConfigItem(
+		keyName = "leaguesAreaMessage",
+		name = "Leagues Area Message",
+		description = "Sent when you unlock a Leagues area. Use $name and $area.",
+		section = messageTemplatesConfig,
+		position = 12
+	)
+	default String leaguesAreaMessage() { return "$name has just unlocked a new area: $area"; }
+
+	@ConfigItem(
+		keyName = "leaguesRelicMessage",
+		name = "Leagues Relic Message",
+		description = "Sent when you unlock a Leagues relic. Use $name and $relic.",
+		section = messageTemplatesConfig,
+		position = 13
+	)
+	default String leaguesRelicMessage() { return "$name has just unlocked a new relic: $relic"; }
+
+	@ConfigItem(
+		keyName = "leaguesMasteryMessage",
+		name = "Leagues Mastery Message",
+		description = "Sent when you unlock a Leagues combat mastery. Use $name and $mastery.",
+		section = messageTemplatesConfig,
+		position = 14
+	)
+	default String leaguesMasteryMessage() { return "$name has just unlocked a new combat mastery: $mastery"; }
+
+	@ConfigItem(
+		keyName = "leaguesTaskMessage",
+		name = "Leagues Task Message",
+		description = "Sent when you finish a Leagues task. Use $name, $task and $tier.",
+		section = messageTemplatesConfig,
+		position = 15
+	)
+	default String leaguesTaskMessage() { return "$name has just completed a Leagues task: $task ($tier)"; }
 }

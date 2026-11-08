@@ -109,6 +109,9 @@ public class KillCountServiceTest
 	{
 		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_COMPLETED_THEFRACTUREDARCHIVE), KillCountService.BOSS_VARPS.get(KillCountService.cleanBossName("Fractured Archive")));
 		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_MAGGOT_KING_KILLS), KillCountService.BOSS_VARPS.get(KillCountService.cleanBossName("Maggot King")));
+		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_COWBOSS_KILLS), KillCountService.BOSS_VARPS.get(KillCountService.cleanBossName("Brutus")));
+		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_COWBOSS_HARDMODE_KILLS), KillCountService.BOSS_VARPS.get(KillCountService.cleanBossName("Demonic Brutus")));
+		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_GRYPHON_BOSS_KILLS), KillCountService.BOSS_VARPS.get(KillCountService.cleanBossName("Shellbane gryphon")));
 	}
 
 	@Test
