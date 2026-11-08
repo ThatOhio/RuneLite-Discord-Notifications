@@ -15,6 +15,7 @@ import net.runelite.api.events.ActorDeath;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
+import net.runelite.api.events.InteractingChanged;
 import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.UsernameChanged;
@@ -93,9 +94,9 @@ public class DiscordNotificationsPlugin extends Plugin
 	public void onGameTick(GameTick event)
 	{
 		clueNotifier.onGameTick();
-		questNotifier.onGameTick();
 		levelNotifier.onGameTick();
 		petNotifier.onGameTick();
+		collectionLogNotifier.onGameTick();
 	}
 
 	@Subscribe
@@ -125,13 +126,24 @@ public class DiscordNotificationsPlugin extends Plugin
 			return;
 		}
 
-		petNotifier.onGameMessage(sanitize(event.getMessage()));
+		String message = sanitize(event.getMessage());
+		petNotifier.onGameMessage(message);
+		collectionLogNotifier.onGameMessage(message);
+		combatAchievementNotifier.onGameMessage(message);
+		clueNotifier.onGameMessage(message);
+		deathNotifier.onGameMessage(message);
 	}
 
 	@Subscribe
 	public void onActorDeath(ActorDeath actorDeath)
 	{
 		deathNotifier.onActorDeath(actorDeath);
+	}
+
+	@Subscribe
+	public void onInteractingChanged(InteractingChanged event)
+	{
+		deathNotifier.onInteractingChanged(event);
 	}
 
 	@Subscribe
@@ -145,17 +157,16 @@ public class DiscordNotificationsPlugin extends Plugin
 	public void onScriptPreFired(ScriptPreFired scriptPreFired)
 	{
 		collectionLogNotifier.onScriptPreFired(scriptPreFired);
-		combatAchievementNotifier.onScriptPreFired(scriptPreFired);
 		petNotifier.onScriptPreFired(scriptPreFired);
+		deathNotifier.onScriptPreFired(scriptPreFired);
 	}
 
 	private void resetState()
 	{
 		levelNotifier.reset();
-		questNotifier.reset();
 		clueNotifier.reset();
+		deathNotifier.reset();
 		petNotifier.reset();
 		collectionLogNotifier.reset();
-		combatAchievementNotifier.reset();
 	}
 }

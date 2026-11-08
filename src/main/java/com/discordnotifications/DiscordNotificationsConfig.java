@@ -91,14 +91,36 @@ public interface DiscordNotificationsConfig extends Config {
 	}
 
 	@ConfigItem(
-			keyName = "linearLevelModifier",
-			name = "Linear Level Modifier",
-			description = "Send every `max(-.1x + linearLevelMax, 1)` levels. Will override `Send every X levels` if set to above zero.",
+			keyName = "levelIntervalOverride",
+			name = "Always send from level",
+			description = "Every level at or above this one is sent, no matter what Send every X levels is set to. 0 turns it off.",
 			section = levellingConfig,
 			position = 4
 	)
-	default double linearLevelMax() {
+	default int levelIntervalOverride() {
 		return 0;
+	}
+
+	@ConfigItem(
+			keyName = "notifyVirtualLevels",
+			name = "Virtual levels",
+			description = "Also send levels past 99, and when a skill hits 200M XP.",
+			section = levellingConfig,
+			position = 5
+	)
+	default boolean notifyVirtualLevels() {
+		return false;
+	}
+
+	@ConfigItem(
+			keyName = "notifyCombatLevel",
+			name = "Combat level",
+			description = "Also send when your combat level goes up.",
+			section = levellingConfig,
+			position = 6
+	)
+	default boolean notifyCombatLevel() {
+		return true;
 	}
 
 	@ConfigItem(
@@ -110,6 +132,17 @@ public interface DiscordNotificationsConfig extends Config {
 	)
 	default boolean sendLevellingScreenshot() {
 		return false;
+	}
+
+	@ConfigItem(
+			keyName = "levelScreenshotMinLevel",
+			name = "Screenshot minimum level",
+			description = "Only include a screenshot when a skill reaches at least this level. 0 means every level up gets one.",
+			section = levellingConfig,
+			position = 101
+	)
+	default int levelScreenshotMinLevel() {
+		return 0;
 	}
 	// End levelling config section
 
@@ -162,6 +195,24 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean includeDeaths() { return false; }
 
 	@ConfigItem(
+			keyName = "ignoreSafeDeaths",
+			name = "Ignore safe deaths",
+			description = "Don't send deaths that cost you nothing, like minigames, raids and your house. The Inferno, Fight Caves and raid wipes still get sent, and hardcore accounts still get deaths that count against them.",
+			section = deathConfig,
+			position = 1
+	)
+	default boolean ignoreSafeDeaths() { return true; }
+
+	@ConfigItem(
+			keyName = "deathIgnoredRegions",
+			name = "Ignored regions",
+			description = "Region IDs to never send deaths from, separated by commas. Handy for UIM death piling.",
+			section = deathConfig,
+			position = 2
+	)
+	default String deathIgnoredRegions() { return ""; }
+
+	@ConfigItem(
 			keyName = "sendDeathScreenshot",
 			name = "Include death screenshots",
 			description = "Include a screenshot with the Discord notification when you die.",
@@ -191,6 +242,24 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean includeClues() { return false; }
 
 	@ConfigItem(
+			keyName = "minClueTier",
+			name = "Minimum tier",
+			description = "Only clues of this tier or higher will send a message.",
+			section = clueConfig,
+			position = 1
+	)
+	default ClueTier minClueTier() { return ClueTier.BEGINNER; }
+
+	@ConfigItem(
+			keyName = "minClueValue",
+			name = "Minimum value",
+			description = "Only clues with a total reward worth at least this much will send a message.",
+			section = clueConfig,
+			position = 2
+	)
+	default int minClueValue() { return 0; }
+
+	@ConfigItem(
 			keyName = "sendClueScreenshot",
 			name = "Include Clue screenshots",
 			description = "Include a screenshot with the Discord notification when you complete a clue.",
@@ -200,6 +269,15 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean sendClueScreenshot() {
 		return false;
 	}
+
+	@ConfigItem(
+			keyName = "clueScreenshotMinValue",
+			name = "Screenshot minimum value",
+			description = "Only include a screenshot when the total reward is worth at least this much.",
+			section = clueConfig,
+			position = 101
+	)
+	default int clueScreenshotMinValue() { return 0; }
 	// End clue config section
 
 	// Pet config section
@@ -257,6 +335,15 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean includeCollectionLogs() { return false; }
 
 	@ConfigItem(
+		keyName = "collectionLogDenylist",
+		name = "Never notify for these items",
+		description = "Items that shouldn't send a message. Put each on its own line, or separate them with commas. Use * as a wildcard, like Clue scroll*",
+		section = collectionLogsConfig,
+		position = 2
+	)
+	default String collectionLogDenylist() { return ""; }
+
+	@ConfigItem(
 		keyName = "sendCollectionLogScreenshot",
 		name = "Include collection log screenshots",
 		description = "Include a screenshot with the Discord notification when you fill a new collection log slot",
@@ -283,6 +370,15 @@ public interface DiscordNotificationsConfig extends Config {
 		position = 1
 	)
 	default boolean includeCombatAchievements() { return false; }
+
+	@ConfigItem(
+		keyName = "minCombatAchievementTier",
+		name = "Minimum tier",
+		description = "Only tasks of this tier or higher will send a message.",
+		section = combatAchievementsConfig,
+		position = 2
+	)
+	default CombatAchievementTier minCombatAchievementTier() { return CombatAchievementTier.EASY; }
 
 	@ConfigItem(
 		keyName = "sendCombatAchievementScreenshot",
@@ -377,7 +473,7 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "levelTemplate",
 		name = "Level Message",
-		description = "Sent when you level up. Use $name, $skills (like Attack to 70 and Strength to 72) and $total. $skill and $level only give the first skill.",
+		description = "Sent when you level up. Use $name, $skills (like Attack to 70 and Strength to 72), $total and $combat. $skill and $level only give the first skill.",
 		section = messageTemplatesConfig,
 		position = 1
 	)
@@ -386,29 +482,47 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "questMessage",
 		name = "Quest Message",
-		description = "Sent when you finish a quest. Use $name and $quest.",
+		description = "Sent when you finish a quest. Use $name, $quest, $qp, $qpMax, $completed, $totalQuests and $progress (like: (44/293 QP)). The numbers are blank if the game hasn't sent them.",
 		section = messageTemplatesConfig,
 		position = 2
 	)
-	default String questMessage() { return "$name has just completed: $quest"; }
+	default String questMessage() { return "$name has just completed: $quest$progress"; }
 
 	@ConfigItem(
 		keyName = "deathMessage",
 		name = "Death Message",
-		description = "Sent when you die. Use $name.",
+		description = "Sent when you die and we can't tell what killed you. Use $name.",
 		section = messageTemplatesConfig,
 		position = 3
 	)
 	default String deathMessage() { return "$name has just died!"; }
 
 	@ConfigItem(
+		keyName = "deathNpcMessage",
+		name = "Death Message (NPC)",
+		description = "Sent when an NPC kills you. Use $name and $killer.",
+		section = messageTemplatesConfig,
+		position = 3
+	)
+	default String deathNpcMessage() { return "$name has just been killed by $killer!"; }
+
+	@ConfigItem(
+		keyName = "deathPvpMessage",
+		name = "Death Message (PvP)",
+		description = "Sent when another player kills you. Use $name and $killer.",
+		section = messageTemplatesConfig,
+		position = 3
+	)
+	default String deathPvpMessage() { return "$name has just been PKed by $killer!"; }
+
+	@ConfigItem(
 		keyName = "clueMessage",
 		name = "Clue Message",
-		description = "Sent when you finish a clue scroll. Use $name.",
+		description = "Sent when you finish a clue scroll. Use $name, $tier, $count (how many of that tier you've done), $items and $value.",
 		section = messageTemplatesConfig,
 		position = 4
 	)
-	default String clueMessage() { return "$name has just completed a clue scroll!"; }
+	default String clueMessage() { return "$name has just completed a clue scroll ($tier #$count) worth $value gp: $items"; }
 
 	@ConfigItem(
 		keyName = "petTemplate",
@@ -422,18 +536,18 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "collectionLogMessage",
 		name = "Collection log Message",
-		description = "Sent when you fill a collection log slot. Use $name and $entry.",
+		description = "Sent when you fill a collection log slot. Use $name, $entry, $completed, $total and $progress (like: (123/1,692)). Put $progress straight after another word, it adds its own space. The counts are blank if the game hasn't sent them yet, opening the Character Summary tab fixes that.",
 		section = messageTemplatesConfig,
 		position = 6
 	)
-	default String collectionLogMessage() { return "$name has just completed a collection log: $entry"; }
+	default String collectionLogMessage() { return "$name has just completed a collection log: $entry$progress"; }
 
 	@ConfigItem(
 		keyName = "combatAchievementsMessage",
 		name = "Combat Achievement Message",
-		description = "Sent when you finish a combat task. Use $name and $achievement.",
+		description = "Sent when you finish a combat task. Use $name, $task, $tier, $points (what the task was worth), $totalPoints and $tierUnlocked (like: and unlocked the Hard tier). Put $tierUnlocked straight after another word, it adds its own space and is blank unless the task got you to a new tier.",
 		section = messageTemplatesConfig,
 		position = 7
 	)
-	default String combatAchievementsMessage() { return "$name has just completed a combat achievement: $achievement"; }
+	default String combatAchievementsMessage() { return "$name has just completed a combat achievement: $task ($tier)$tierUnlocked"; }
 }
