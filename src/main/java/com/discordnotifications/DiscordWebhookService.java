@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
+import net.runelite.client.RuneLite;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.ui.DrawManager;
 import okhttp3.Call;
@@ -56,9 +57,15 @@ public class DiscordWebhookService
 	private static final float JPEG_QUALITY = 0.85f;
 	private static final MediaType PNG = MediaType.parse("image/png");
 	private static final MediaType JPEG = MediaType.parse("image/jpeg");
+	private static final int MAX_RETRIES = 3;
+	private static final long RETRY_BASE_DELAY_MS = 2_000;
+	private static final long MAX_RETRY_DELAY_MS = 60_000;
+	private static final long TIMEOUT_SECONDS = 15;
+	private static final long IMAGE_WRITE_TIMEOUT_SECONDS = 30;
+	// build.gradle doesn't ship, so the real plugin version isn't available at runtime
+	private static final String USER_AGENT = RuneLite.USER_AGENT + " (DiscordNotifications/1.x)";
 
-	@Inject
-	private OkHttpClient okHttpClient;
+	private OkHttpClient httpClient;
 
 	@Inject
 	private DrawManager drawManager;
@@ -76,6 +83,15 @@ public class DiscordWebhookService
 	private Client client;
 
 	private NotificationQueue queue;
+
+	@Inject
+	private void configureHttpClient(OkHttpClient okHttpClient)
+	{
+		httpClient = okHttpClient.newBuilder()
+			.connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+			.readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+			.build();
+	}
 
 	@Inject
 	private void connectQueue(NotificationQueue queue)
@@ -272,6 +288,9 @@ public class DiscordWebhookService
 
 		boolean jpeg = isJpeg(image);
 		RequestBody imageBody = image == null ? null : RequestBody.create(jpeg ? JPEG : PNG, image);
+		OkHttpClient client = imageBody == null ? httpClient : httpClient.newBuilder()
+			.writeTimeout(IMAGE_WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+			.build();
 
 		for (String url : urls)
 		{
@@ -286,30 +305,79 @@ public class DiscordWebhookService
 
 			Request request = new Request.Builder()
 				.url(url)
+				.header("User-Agent", USER_AGENT)
 				.post(builder.build())
 				.build();
 
-			sendRequest(request);
+			sendRequest(client, request, 0);
 		}
 	}
 
-	private void sendRequest(Request request)
+	private void sendRequest(OkHttpClient client, Request request, int attempt)
 	{
-		okHttpClient.newCall(request).enqueue(
+		client.newCall(request).enqueue(
 			new Callback()
 			{
 				@Override
 				public void onFailure(Call call, IOException e)
 				{
-					log.debug("Error submitting webhook", e);
+					retryOrGiveUp(client, request, attempt, e.toString(), null);
 				}
 
 				@Override
 				public void onResponse(Call call, Response response)
 				{
 					response.close();
+					int code = response.code();
+					if (response.isSuccessful())
+					{
+						return;
+					}
+
+					if (code >= 400 && code < 500 && code != 429)
+					{
+						log.warn("Webhook rejected: HTTP {}", code);
+						return;
+					}
+
+					retryOrGiveUp(client, request, attempt, "HTTP " + code, response.header("Retry-After"));
 				}
 			}
 		);
+	}
+
+	private void retryOrGiveUp(OkHttpClient client, Request request, int attempt, String reason, String retryAfter)
+	{
+		long delay = retryDelayMs(retryAfter, attempt);
+
+		// Don't log the request, the webhook URL is a secret
+		if (attempt >= MAX_RETRIES || delay > MAX_RETRY_DELAY_MS)
+		{
+			log.warn("Webhook failed after {} retries: {}", attempt, reason);
+			return;
+		}
+
+		log.debug("Webhook failed, retrying in {}ms: {}", delay, reason);
+		executor.schedule(() -> sendRequest(client, request, attempt + 1), delay, TimeUnit.MILLISECONDS);
+	}
+
+	// Seconds only, an HTTP-date falls back to the normal backoff
+	static long retryDelayMs(String retryAfter, int attempt)
+	{
+		long backoff = RETRY_BASE_DELAY_MS << attempt;
+		if (retryAfter == null)
+		{
+			return backoff;
+		}
+
+		try
+		{
+			double seconds = Double.parseDouble(retryAfter.trim());
+			return seconds >= 0 ? (long) Math.ceil(seconds * 1000) : backoff;
+		}
+		catch (NumberFormatException e)
+		{
+			return backoff;
+		}
 	}
 }

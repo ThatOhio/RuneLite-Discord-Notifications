@@ -48,6 +48,30 @@ public class DiscordWebhookServiceTest
 	}
 
 	@Test
+	public void backoffDoublesWithoutRetryAfter()
+	{
+		assertEquals(2_000, DiscordWebhookService.retryDelayMs(null, 0));
+		assertEquals(4_000, DiscordWebhookService.retryDelayMs(null, 1));
+		assertEquals(8_000, DiscordWebhookService.retryDelayMs(null, 2));
+	}
+
+	@Test
+	public void retryAfterSecondsReplaceBackoff()
+	{
+		assertEquals(5_000, DiscordWebhookService.retryDelayMs("5", 0));
+		assertEquals(1_250, DiscordWebhookService.retryDelayMs(" 1.25 ", 2));
+		assertEquals(0, DiscordWebhookService.retryDelayMs("0", 1));
+	}
+
+	@Test
+	public void unusableRetryAfterFallsBackToBackoff()
+	{
+		assertEquals(2_000, DiscordWebhookService.retryDelayMs("Wed, 21 Oct 2026 07:28:00 GMT", 0));
+		assertEquals(4_000, DiscordWebhookService.retryDelayMs("", 1));
+		assertEquals(4_000, DiscordWebhookService.retryDelayMs("-3", 1));
+	}
+
+	@Test
 	public void smallScreenshotStaysPng() throws IOException
 	{
 		byte[] encoded = DiscordWebhookService.encodeUnderLimit(new BufferedImage(100, 50, BufferedImage.TYPE_INT_ARGB));
