@@ -91,14 +91,36 @@ public interface DiscordNotificationsConfig extends Config {
 	}
 
 	@ConfigItem(
-			keyName = "linearLevelModifier",
-			name = "Linear Level Modifier",
-			description = "Send every `max(-.1x + linearLevelMax, 1)` levels. Will override `Send every X levels` if set to above zero.",
+			keyName = "levelIntervalOverride",
+			name = "Always send from level",
+			description = "Every level at or above this one is sent, no matter what Send every X levels is set to. 0 turns it off.",
 			section = levellingConfig,
 			position = 4
 	)
-	default double linearLevelMax() {
+	default int levelIntervalOverride() {
 		return 0;
+	}
+
+	@ConfigItem(
+			keyName = "notifyVirtualLevels",
+			name = "Virtual levels",
+			description = "Also send levels past 99, and when a skill hits 200M XP.",
+			section = levellingConfig,
+			position = 5
+	)
+	default boolean notifyVirtualLevels() {
+		return false;
+	}
+
+	@ConfigItem(
+			keyName = "notifyCombatLevel",
+			name = "Combat level",
+			description = "Also send when your combat level goes up.",
+			section = levellingConfig,
+			position = 6
+	)
+	default boolean notifyCombatLevel() {
+		return true;
 	}
 
 	@ConfigItem(
@@ -110,6 +132,17 @@ public interface DiscordNotificationsConfig extends Config {
 	)
 	default boolean sendLevellingScreenshot() {
 		return false;
+	}
+
+	@ConfigItem(
+			keyName = "levelScreenshotMinLevel",
+			name = "Screenshot minimum level",
+			description = "Only include a screenshot when a skill reaches at least this level. 0 means every level up gets one.",
+			section = levellingConfig,
+			position = 101
+	)
+	default int levelScreenshotMinLevel() {
+		return 0;
 	}
 	// End levelling config section
 
@@ -422,7 +455,7 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "levelTemplate",
 		name = "Level Message",
-		description = "Sent when you level up. Use $name, $skills (like Attack to 70 and Strength to 72) and $total. $skill and $level only give the first skill.",
+		description = "Sent when you level up. Use $name, $skills (like Attack to 70 and Strength to 72), $total and $combat. $skill and $level only give the first skill.",
 		section = messageTemplatesConfig,
 		position = 1
 	)
