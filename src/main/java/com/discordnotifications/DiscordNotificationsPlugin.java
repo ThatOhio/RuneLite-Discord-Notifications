@@ -14,8 +14,11 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.util.Text;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,8 +26,8 @@ import java.util.regex.Pattern;
 @PluginDescriptor(name = "Discord Notifications")
 public class DiscordNotificationsPlugin extends Plugin
 {
-	private Hashtable<String, Integer> currentLevels;
-	private ArrayList<String> leveledSkills;
+	private final Map<String, Integer> currentLevels = new HashMap<>();
+	private final Set<String> leveledSkills = new LinkedHashSet<>();
 	private boolean shouldSendLevelMessage = false;
 	private boolean shouldSendQuestMessage = false;
 	private boolean shouldSendClueMessage = false;
@@ -72,8 +75,7 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
-		currentLevels = new Hashtable<String, Integer>();
-		leveledSkills = new ArrayList<String>();
+		resetState();
 	}
 
 	@Override
@@ -133,37 +135,27 @@ public class DiscordNotificationsPlugin extends Plugin
 	}
 
 	@Subscribe
-	public void onStatChanged(net.runelite.api.events.StatChanged statChanged)
+	public void onStatChanged(StatChanged statChanged)
 	{
-		if (!config.includeLevelling())
-		{
-			return;
-		}
-
 		String skillName = statChanged.getSkill().getName();
 		int newLevel = statChanged.getLevel();
 
-		// .contains wasn't behaving so I went with == null
-		Integer previousLevel = currentLevels.get(skillName);
-		if (previousLevel == null || previousLevel == 0)
+		// The first StatChanged per skill after login seeds the cache. A level that is lower than the
+		// cached one is stale data, not a level-up, so only the cache is updated.
+		Integer previousLevel = currentLevels.put(skillName, newLevel);
+		if (previousLevel == null || previousLevel == 0 || newLevel <= previousLevel || !config.includeLevelling())
 		{
-			currentLevels.put(skillName, newLevel);
 			return;
 		}
 
-		if (previousLevel != newLevel)
+		// Certain activities can multilevel, check if any of the levels are valid for the message.
+		for (int level = previousLevel + 1; level <= newLevel; level++)
 		{
-			currentLevels.put(skillName, newLevel);
-
-			// Certain activities can multilevel, check if any of the levels are valid for the message.
-			for (int level = previousLevel + 1; level <= newLevel; level++)
+			if (shouldSendForThisLevel(level))
 			{
-				if (shouldSendForThisLevel(level))
-				{
-					leveledSkills.add(skillName);
-					shouldSendLevelMessage = true;
-					break;
-				}
+				leveledSkills.add(skillName);
+				shouldSendLevelMessage = true;
+				break;
 			}
 		}
 	}
@@ -321,33 +313,41 @@ public class DiscordNotificationsPlugin extends Plugin
 
 	private void sendLevelMessage()
 	{
-		String localName = client.getLocalPlayer().getName();
-
-		String levelUpString = config.levelMessage().replaceAll("\\$name", localName);
-
-		String[] skills = new String[leveledSkills.size()];
-		skills = leveledSkills.toArray(skills);
+		Map<String, Integer> levels = new LinkedHashMap<>();
+		for (String skill : leveledSkills)
+		{
+			levels.put(skill, currentLevels.get(skill));
+		}
 		leveledSkills.clear();
 
-		for (int i = 0; i < skills.length; i++)
+		String message = buildLevelMessage(
+			client.getLocalPlayer().getName(),
+			levels,
+			client.getTotalLevel(),
+			config.levelMessage(),
+			config.andLevelMessage(),
+			config.includeTotalLevel() ? config.totalLevelMessage() : "");
+
+		webhookService.sendMessage(message, config.sendLevellingScreenshot());
+	}
+
+	static String buildLevelMessage(String name, Map<String, Integer> levels, int totalLevel,
+		String levelTemplate, String andTemplate, String totalTemplate)
+	{
+		StringBuilder message = new StringBuilder();
+		boolean first = true;
+		for (Map.Entry<String, Integer> entry : levels.entrySet())
 		{
-			if(i != 0) {
-				levelUpString += config.andLevelMessage();
-			}
-			
-			if(config.includeTotalLevel()) {
-				levelUpString += config.totalLevelMessage();
-			}
-
-			String fixed = levelUpString
-					.replaceAll("\\$skill", skills[i])
-					.replaceAll("\\$level", currentLevels.get(skills[i]).toString())
-					.replaceAll("\\$total" , Integer.toString(client.getTotalLevel()));
-
-			levelUpString = fixed;
+			message.append((first ? levelTemplate : andTemplate)
+				.replace("$skill", entry.getKey())
+				.replace("$level", entry.getValue().toString()));
+			first = false;
 		}
+		message.append(totalTemplate);
 
-		webhookService.sendMessage(levelUpString, config.sendLevellingScreenshot());
+		return message.toString()
+			.replace("$name", name)
+			.replace("$total", Integer.toString(totalLevel));
 	}
 
 	private void sendPetMessage()
