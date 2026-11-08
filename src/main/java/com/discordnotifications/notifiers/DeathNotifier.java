@@ -7,6 +7,7 @@ import com.discordnotifications.WildcardList;
 import com.discordnotifications.WorldUtils;
 import net.runelite.api.Actor;
 import net.runelite.api.Player;
+import net.runelite.api.Skill;
 import net.runelite.api.events.ActorDeath;
 import net.runelite.api.events.InteractingChanged;
 import net.runelite.api.events.ScriptPreFired;
@@ -26,11 +27,14 @@ public class DeathNotifier extends BaseNotifier
 
 	private WeakReference<Actor> lastTarget = new WeakReference<>(null);
 	private int lastTargetTick;
+	private boolean targetingLast;
 
 	@Override
 	public void reset()
 	{
 		lastTarget.clear();
+		lastTargetTick = 0;
+		targetingLast = false;
 	}
 
 	public void onActorDeath(ActorDeath actorDeath)
@@ -54,7 +58,7 @@ public class DeathNotifier extends BaseNotifier
 		{
 			// Doom kills you without reaching 0 HP, so there's no ActorDeath
 			Player player = client.getLocalPlayer();
-			if (config.includeDeaths() && player != null && player.getHealthRatio() > 0
+			if (config.includeDeaths() && player != null && client.getBoostedSkillLevel(Skill.HITPOINTS) > 0
 				&& WorldUtils.getLocation(client, player).getRegionID() == WorldUtils.FORTIS_REGION)
 			{
 				notifyDeath(true);
@@ -89,11 +93,18 @@ public class DeathNotifier extends BaseNotifier
 		}
 
 		Actor target = event.getTarget();
-		if (target != null && target.getCombatLevel() > 0)
+		boolean accepted = target != null && target.getCombatLevel() > 0;
+		if (accepted)
 		{
 			lastTarget = new WeakReference<>(target);
 		}
-		lastTargetTick = client.getTickCount();
+
+		// Running from a fight still counts as recent, so the window starts when you disengage
+		if (accepted || (target == null && targetingLast))
+		{
+			lastTargetTick = client.getTickCount();
+		}
+		targetingLast = accepted;
 	}
 
 	// With safe deaths on, or on a hardcore, the ActorDeath in the raid was already posted
