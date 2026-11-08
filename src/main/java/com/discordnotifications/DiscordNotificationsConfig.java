@@ -195,6 +195,24 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean includeDeaths() { return false; }
 
 	@ConfigItem(
+			keyName = "ignoreSafeDeaths",
+			name = "Ignore safe deaths",
+			description = "Don't send deaths that cost you nothing, like minigames, raids and your house. The Inferno, Fight Caves and raid wipes still get sent, and hardcore accounts still get deaths that count against them.",
+			section = deathConfig,
+			position = 1
+	)
+	default boolean ignoreSafeDeaths() { return true; }
+
+	@ConfigItem(
+			keyName = "deathIgnoredRegions",
+			name = "Ignored regions",
+			description = "Region IDs to never send deaths from, separated by commas. Handy for UIM death piling.",
+			section = deathConfig,
+			position = 2
+	)
+	default String deathIgnoredRegions() { return ""; }
+
+	@ConfigItem(
 			keyName = "sendDeathScreenshot",
 			name = "Include death screenshots",
 			description = "Include a screenshot with the Discord notification when you die.",
@@ -473,11 +491,29 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "deathMessage",
 		name = "Death Message",
-		description = "Sent when you die. Use $name.",
+		description = "Sent when you die and we can't tell what killed you. Use $name.",
 		section = messageTemplatesConfig,
 		position = 3
 	)
 	default String deathMessage() { return "$name has just died!"; }
+
+	@ConfigItem(
+		keyName = "deathNpcMessage",
+		name = "Death Message (NPC)",
+		description = "Sent when an NPC kills you. Use $name and $killer.",
+		section = messageTemplatesConfig,
+		position = 3
+	)
+	default String deathNpcMessage() { return "$name has just been killed by $killer!"; }
+
+	@ConfigItem(
+		keyName = "deathPvpMessage",
+		name = "Death Message (PvP)",
+		description = "Sent when another player kills you. Use $name and $killer.",
+		section = messageTemplatesConfig,
+		position = 3
+	)
+	default String deathPvpMessage() { return "$name has just been PKed by $killer!"; }
 
 	@ConfigItem(
 		keyName = "clueMessage",
