@@ -52,6 +52,9 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Inject
 	private CombatAchievementNotifier combatAchievementNotifier;
 
+	@Inject
+	private NotificationQueue notificationQueue;
+
 	@Provides
 	DiscordNotificationsConfig provideConfig(ConfigManager configManager)
 	{
@@ -62,11 +65,13 @@ public class DiscordNotificationsPlugin extends Plugin
 	protected void startUp() throws Exception
 	{
 		resetState();
+		notificationQueue.start();
 	}
 
 	@Override
 	protected void shutDown() throws Exception
 	{
+		notificationQueue.shutdown();
 	}
 
 	@Subscribe

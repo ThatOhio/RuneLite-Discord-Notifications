@@ -2,6 +2,7 @@ package com.discordnotifications;
 
 import com.google.common.base.Strings;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.ui.DrawManager;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -55,26 +56,29 @@ public class DiscordWebhookService
 	@Inject
 	private DiscordNotificationsConfig config;
 
+	@Inject
+	private ClientThread clientThread;
+
+	private NotificationQueue queue;
+
+	@Inject
+	private void connectQueue(NotificationQueue queue)
+	{
+		this.queue = queue;
+		queue.connect(this::captureScreenshot, this::postToAll);
+	}
+
 	public void send(Notification notification)
 	{
-		List<HttpUrl> urls = parseWebhookUrls(config.webhook());
+		List<String> urls = parseWebhookUrls(config.webhook()).stream()
+			.map(HttpUrl::toString)
+			.collect(Collectors.toList());
 		if (urls.isEmpty())
 		{
 			return;
 		}
 
-		DiscordWebhookBody body = new DiscordWebhookBody();
-		body.setContent(notification.getText());
-		String payload = GSON.toJson(body);
-
-		if (notification.isScreenshot())
-		{
-			captureScreenshot(image -> postToAll(urls, payload, image));
-		}
-		else
-		{
-			postToAll(urls, payload, null);
-		}
+		queue.add(urls, notification);
 	}
 
 	static List<HttpUrl> parseWebhookUrls(String configured)
@@ -106,14 +110,15 @@ public class DiscordWebhookService
 			}
 		}, CAPTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
-		drawManager.requestNextFrameListener(image ->
+		// Tick end so the popup or chat line that caused this is on screen
+		clientThread.invokeAtTickEnd(() -> drawManager.requestNextFrameListener(image ->
 		{
 			if (!delivered.compareAndSet(false, true))
 			{
 				return;
 			}
 			executor.execute(() -> onImage.accept(encodePng(image)));
-		});
+		}));
 	}
 
 	private static byte[] encodePng(Image image)
@@ -129,18 +134,22 @@ public class DiscordWebhookService
 			ImageIO.write((BufferedImage) image, "png", out);
 			return out.toByteArray();
 		}
-		catch (IOException e)
+		catch (IOException | RuntimeException e)
 		{
 			log.warn("Error converting image to byte array", e);
 			return null;
 		}
 	}
 
-	private void postToAll(List<HttpUrl> urls, String payload, byte[] image)
+	private void postToAll(List<String> urls, String text, byte[] image)
 	{
+		DiscordWebhookBody body = new DiscordWebhookBody();
+		body.setContent(text);
+		String payload = GSON.toJson(body);
+
 		RequestBody imageBody = image == null ? null : RequestBody.create(PNG, image);
 
-		for (HttpUrl url : urls)
+		for (String url : urls)
 		{
 			MultipartBody.Builder builder = new MultipartBody.Builder()
 				.setType(MultipartBody.FORM)
