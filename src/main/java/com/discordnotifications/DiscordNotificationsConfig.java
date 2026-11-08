@@ -80,42 +80,6 @@ public interface DiscordNotificationsConfig extends Config {
 	}
 
 	@ConfigItem(
-			keyName = "levelMessage",
-			name = "Level Message",
-			description = "Message to send to Discord on Level",
-			section = levellingConfig,
-			position = 5
-	)
-	default String levelMessage() { return "$name leveled $skill to $level"; }
-
-	@ConfigItem(
-			keyName = "andLevelMessage",
-			name = "And Level Message",
-			description = "Message to send to Discord when Multi Skill Level",
-			section = levellingConfig,
-			position = 6
-	)
-	default String andLevelMessage() { return ", and $skill to $level"; }
-
-	@ConfigItem(
-			keyName = "includeTotalLevelMessage",
-			name = "Include total level with message",
-			description = "Include total level in the message to send to Discord.",
-			section = levellingConfig,
-			position = 7
-	)
-	default boolean includeTotalLevel() { return false; }
-
-	@ConfigItem(
-			keyName = "totalLevelMessage",
-			name = "Total Level Message",
-			description = "Message to send to Discord when Total Level is included.",
-			section = levellingConfig,
-			position = 8
-	)
-	default String totalLevelMessage() { return " - Total Level: $total"; }
-
-	@ConfigItem(
 			keyName = "sendLevellingScreenshot",
 			name = "Include levelling screenshots",
 			description = "Include a screenshot when leveling up.",
@@ -147,15 +111,6 @@ public interface DiscordNotificationsConfig extends Config {
 	}
 
 	@ConfigItem(
-			keyName = "questMessage",
-			name = "Quest Message",
-			description = "Message to send to Discord on Quest",
-			section = questingConfig,
-			position = 1
-	)
-	default String questMessage() { return "$name has just completed: $quest"; }
-
-	@ConfigItem(
 			keyName = "sendQuestingScreenshot",
 			name = "Include quest screenshots",
 			description = "Include a screenshot with the Discord notification when leveling up.",
@@ -183,15 +138,6 @@ public interface DiscordNotificationsConfig extends Config {
 			section = deathConfig
 	)
 	default boolean includeDeaths() { return false; }
-
-	@ConfigItem(
-			keyName = "deathMessage",
-			name = "Death Message",
-			description = "Message to send to Discord on Death",
-			section = deathConfig,
-			position = 1
-	)
-	default String deathMessage() { return "$name has just died!"; }
 
 	@ConfigItem(
 			keyName = "sendDeathScreenshot",
@@ -223,15 +169,6 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean includeClues() { return false; }
 
 	@ConfigItem(
-			keyName = "clueMessage",
-			name = "Clue Message",
-			description = "Message to send to Discord on Clue",
-			section = clueConfig,
-			position = 1
-	)
-	default String clueMessage() { return "$name has just completed a clue scroll!"; }
-
-	@ConfigItem(
 			keyName = "sendClueScreenshot",
 			name = "Include Clue screenshots",
 			description = "Include a screenshot with the Discord notification when you complete a clue.",
@@ -259,15 +196,6 @@ public interface DiscordNotificationsConfig extends Config {
 			section = petConfig
 	)
 	default boolean includePets() { return false; }
-
-	@ConfigItem(
-			keyName = "petMessage",
-			name = "Pet Message",
-			description = "Message to send to Discord on Pet",
-			section = petConfig,
-			position = 1
-	)
-	default String petMessage() { return "$name has just received a pet!"; }
 
 	@ConfigItem(
 			keyName = "sendPetScreenshot",
@@ -298,15 +226,6 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean includeCollectionLogs() { return false; }
 
 	@ConfigItem(
-		keyName = "collectionLogMessage",
-		name = "Collection log Message",
-		description = "Message to send to Discord on collection logs completions",
-		section = collectionLogsConfig,
-		position = 2
-	)
-	default String collectionLogMessage() { return "$name has just completed a collection log: $entry"; }
-
-	@ConfigItem(
 		keyName = "sendCollectionLogScreenshot",
 		name = "Include collection log screenshots",
 		description = "Include a screenshot with the Discord notification when you fill a new collection log slot",
@@ -335,15 +254,6 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean includeCombatAchievements() { return false; }
 
 	@ConfigItem(
-		keyName = "combatAchievementsMessage",
-		name = "Combat Achievement Message",
-		description = "Message to send to Discord on combat achievements completions",
-		section = combatAchievementsConfig,
-		position = 2
-	)
-	default String combatAchievementsMessage() { return "$name has just completed a combat achievement: $achievement"; }
-
-	@ConfigItem(
 		keyName = "sendCombatAchievementScreenshot",
 		name = "Include combat achievements screenshots",
 		description = "Include a screenshot with the Discord notification when you complete a combat achievement",
@@ -353,4 +263,75 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean sendCombatAchievementsScreenshot() {
 		return false;
 	}
+
+	@ConfigSection(
+		name = "Advanced: message templates",
+		description = "Change the text of each message",
+		position = 1000,
+		closedByDefault = true
+	)
+	String messageTemplatesConfig = "messageTemplatesConfig";
+
+	@ConfigItem(
+		keyName = "levelMessage",
+		name = "Level Message",
+		description = "Sent when you level up. Use $name, $skills (like Attack to 70 and Strength to 72) and $total. $skill and $level only give the first skill.",
+		section = messageTemplatesConfig,
+		position = 1
+	)
+	default String levelMessage() { return "$name leveled $skills - Total Level: $total"; }
+
+	@ConfigItem(
+		keyName = "questMessage",
+		name = "Quest Message",
+		description = "Sent when you finish a quest. Use $name and $quest.",
+		section = messageTemplatesConfig,
+		position = 2
+	)
+	default String questMessage() { return "$name has just completed: $quest"; }
+
+	@ConfigItem(
+		keyName = "deathMessage",
+		name = "Death Message",
+		description = "Sent when you die. Use $name.",
+		section = messageTemplatesConfig,
+		position = 3
+	)
+	default String deathMessage() { return "$name has just died!"; }
+
+	@ConfigItem(
+		keyName = "clueMessage",
+		name = "Clue Message",
+		description = "Sent when you finish a clue scroll. Use $name.",
+		section = messageTemplatesConfig,
+		position = 4
+	)
+	default String clueMessage() { return "$name has just completed a clue scroll!"; }
+
+	@ConfigItem(
+		keyName = "petMessage",
+		name = "Pet Message",
+		description = "Sent when you get a pet. Use $name.",
+		section = messageTemplatesConfig,
+		position = 5
+	)
+	default String petMessage() { return "$name has just received a pet!"; }
+
+	@ConfigItem(
+		keyName = "collectionLogMessage",
+		name = "Collection log Message",
+		description = "Sent when you fill a collection log slot. Use $name and $entry.",
+		section = messageTemplatesConfig,
+		position = 6
+	)
+	default String collectionLogMessage() { return "$name has just completed a collection log: $entry"; }
+
+	@ConfigItem(
+		keyName = "combatAchievementsMessage",
+		name = "Combat Achievement Message",
+		description = "Sent when you finish a combat task. Use $name and $achievement.",
+		section = messageTemplatesConfig,
+		position = 7
+	)
+	default String combatAchievementsMessage() { return "$name has just completed a combat achievement: $achievement"; }
 }

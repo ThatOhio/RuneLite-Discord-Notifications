@@ -3,6 +3,7 @@ package com.discordnotifications.notifiers;
 import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.InterfaceID;
 
@@ -59,7 +60,8 @@ public class QuestNotifier extends BaseNotifier
 	{
 		send(Notification.builder()
 			.type(NotificationType.QUEST)
-			.text(config.questMessage().replace("$quest", questName))
+			.text(config.questMessage())
+			.placeholders(ImmutableMap.of("quest", questName))
 			.screenshot(config.sendQuestingScreenshot())
 			.build());
 	}

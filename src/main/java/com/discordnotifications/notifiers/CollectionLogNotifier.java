@@ -2,6 +2,7 @@ package com.discordnotifications.notifiers;
 
 import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
+import com.google.common.collect.ImmutableMap;
 import net.runelite.api.ScriptID;
 import net.runelite.api.VarClientStr;
 import net.runelite.api.events.ScriptPreFired;
@@ -39,7 +40,8 @@ public class CollectionLogNotifier extends BaseNotifier
 					String entry = popupSubject(client.getVarcStrValue(VarClientStr.NOTIFICATION_BOTTOM_TEXT));
 					send(Notification.builder()
 						.type(NotificationType.COLLECTION_LOG)
-						.text(config.collectionLogMessage().replace("$entry", entry))
+						.text(config.collectionLogMessage())
+						.placeholders(ImmutableMap.of("entry", entry))
 						.screenshot(config.sendCollectionLogScreenshot())
 						.build());
 				}

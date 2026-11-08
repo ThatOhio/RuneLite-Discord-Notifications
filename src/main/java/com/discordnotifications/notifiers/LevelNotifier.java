@@ -2,12 +2,15 @@ package com.discordnotifications.notifiers;
 
 import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
+import com.google.common.collect.ImmutableMap;
 import net.runelite.api.events.StatChanged;
 
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -97,34 +100,32 @@ public class LevelNotifier extends BaseNotifier
 		}
 		leveledSkills.clear();
 
-		String message = buildLevelMessage(
-			levels,
-			client.getTotalLevel(),
-			config.levelMessage(),
-			config.andLevelMessage(),
-			config.includeTotalLevel() ? config.totalLevelMessage() : "");
-
 		send(Notification.builder()
 			.type(NotificationType.LEVEL)
-			.text(message)
+			.text(config.levelMessage())
+			.placeholders(levelPlaceholders(levels, client.getTotalLevel()))
 			.screenshot(config.sendLevellingScreenshot())
 			.build());
 	}
 
-	static String buildLevelMessage(Map<String, Integer> levels, int totalLevel,
-		String levelTemplate, String andTemplate, String totalTemplate)
+	static Map<String, String> levelPlaceholders(Map<String, Integer> levels, int totalLevel)
 	{
-		StringBuilder message = new StringBuilder();
-		boolean first = true;
+		List<String> skills = new ArrayList<>();
 		for (Map.Entry<String, Integer> entry : levels.entrySet())
 		{
-			message.append((first ? levelTemplate : andTemplate)
-				.replace("$skill", entry.getKey())
-				.replace("$level", entry.getValue().toString()));
-			first = false;
+			skills.add(entry.getKey() + " to " + entry.getValue());
 		}
-		message.append(totalTemplate);
 
-		return message.toString().replace("$total", Integer.toString(totalLevel));
+		int last = skills.size() - 1;
+		String joined = last == 0
+			? skills.get(0)
+			: String.join(", ", skills.subList(0, last)) + " and " + skills.get(last);
+
+		Map.Entry<String, Integer> first = levels.entrySet().iterator().next();
+		return ImmutableMap.of(
+			"skills", joined,
+			"skill", first.getKey(),
+			"level", first.getValue().toString(),
+			"total", Integer.toString(totalLevel));
 	}
 }

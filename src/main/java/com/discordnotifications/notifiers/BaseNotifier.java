@@ -3,12 +3,15 @@ package com.discordnotifications.notifiers;
 import com.discordnotifications.DiscordNotificationsConfig;
 import com.discordnotifications.DiscordWebhookService;
 import com.discordnotifications.Notification;
+import com.discordnotifications.Template;
 import com.google.common.base.Strings;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
 
 import javax.inject.Inject;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -43,8 +46,11 @@ public abstract class BaseNotifier
 			return;
 		}
 
+		Map<String, String> values = new HashMap<>(notification.getPlaceholders());
+		values.put("name", localName);
+
 		webhookService.send(notification.toBuilder()
-			.text(notification.getText().replace("$name", localName))
+			.text(Template.render(notification.getText(), values))
 			.build());
 	}
 

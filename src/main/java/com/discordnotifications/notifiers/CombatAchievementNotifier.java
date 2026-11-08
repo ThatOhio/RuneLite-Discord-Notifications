@@ -2,6 +2,7 @@ package com.discordnotifications.notifiers;
 
 import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
+import com.google.common.collect.ImmutableMap;
 import net.runelite.api.ScriptID;
 import net.runelite.api.VarClientStr;
 import net.runelite.api.Varbits;
@@ -42,7 +43,8 @@ public class CombatAchievementNotifier extends BaseNotifier
 					String task = popupSubject(client.getVarcStrValue(VarClientStr.NOTIFICATION_BOTTOM_TEXT));
 					send(Notification.builder()
 						.type(NotificationType.COMBAT_ACHIEVEMENT)
-						.text(config.combatAchievementsMessage().replace("$achievement", task))
+						.text(config.combatAchievementsMessage())
+						.placeholders(ImmutableMap.of("achievement", task))
 						.screenshot(config.sendCombatAchievementsScreenshot())
 						.build());
 				}
