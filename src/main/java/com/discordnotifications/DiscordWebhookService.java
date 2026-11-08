@@ -16,12 +16,18 @@ import okhttp3.Response;
 import javax.imageio.ImageIO;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static net.runelite.http.api.RuneLiteAPI.GSON;
@@ -34,6 +40,9 @@ import static net.runelite.http.api.RuneLiteAPI.GSON;
 @Singleton
 class DiscordWebhookService
 {
+	private static final long CAPTURE_TIMEOUT_MS = 2_000;
+	private static final MediaType PNG = MediaType.parse("image/png");
+
 	@Inject
 	private OkHttpClient okHttpClient;
 
@@ -41,92 +50,114 @@ class DiscordWebhookService
 	private DrawManager drawManager;
 
 	@Inject
+	private ScheduledExecutorService executor;
+
+	@Inject
 	private DiscordNotificationsConfig config;
 
 	void sendMessage(String message, boolean sendScreenshot)
 	{
+		List<HttpUrl> urls = parseWebhookUrls(config.webhook());
+		if (urls.isEmpty())
+		{
+			return;
+		}
+
 		DiscordWebhookBody body = new DiscordWebhookBody();
 		body.setContent(message);
-		send(body, sendScreenshot);
-	}
+		String payload = GSON.toJson(body);
 
-	private void send(DiscordWebhookBody discordWebhookBody, boolean sendScreenshot)
-	{
-		for (String webhookUrl : configuredWebhookUrls())
+		if (sendScreenshot)
 		{
-			HttpUrl url = HttpUrl.parse(webhookUrl);
-			MultipartBody.Builder requestBodyBuilder =
-				new MultipartBody
-						.Builder()
-						.setType(MultipartBody.FORM)
-						.addFormDataPart("payload_json", GSON.toJson(discordWebhookBody));
-
-			if (sendScreenshot)
-			{
-				sendWithScreenshot(url, requestBodyBuilder);
-			}
-			else
-			{
-				buildRequestAndSend(url, requestBodyBuilder);
-			}
+			captureScreenshot(image -> postToAll(urls, payload, image));
+		}
+		else
+		{
+			postToAll(urls, payload, null);
 		}
 	}
 
-	private List<String> configuredWebhookUrls()
+	static List<HttpUrl> parseWebhookUrls(String configured)
 	{
-		String configUrl = config.webhook();
-		if (Strings.isNullOrEmpty(configUrl))
+		if (Strings.isNullOrEmpty(configured))
 		{
 			return Collections.emptyList();
 		}
 
-		return Arrays.stream(configUrl.split("\n"))
-			.filter(u -> u.length() > 0)
+		return Arrays.stream(configured.split("[\n,;]"))
 			.map(String::trim)
+			.filter(u -> !u.isEmpty())
+			.map(HttpUrl::parse)
+			.filter(Objects::nonNull)
 			.collect(Collectors.toList());
 	}
 
-	private void sendWithScreenshot(HttpUrl url, MultipartBody.Builder requestBodyBuilder)
+	private void captureScreenshot(Consumer<byte[]> onImage)
 	{
-		drawManager.requestNextFrameListener(
-			image ->
+		AtomicBoolean delivered = new AtomicBoolean();
+
+		// DrawManager drops its listeners without a word when it can't draw (minimised, loading screen)
+		executor.schedule(() ->
+		{
+			if (delivered.compareAndSet(false, true))
 			{
-				BufferedImage bufferedImage = (BufferedImage) image;
-				byte[] imageBytes;
-				try
-				{
-					imageBytes = convertImageToByteArray(bufferedImage);
-				}
-				catch (IOException e)
-				{
-					log.warn("Error converting image to byte array", e);
-					return;
-				}
-
-				requestBodyBuilder.addFormDataPart(
-					"file",
-					"image.png",
-					RequestBody.create(
-						MediaType.parse("image/png"),
-						imageBytes
-					)
-				);
-
-				buildRequestAndSend(url, requestBodyBuilder);
+				log.debug("No frame within {}ms, sending without a screenshot", CAPTURE_TIMEOUT_MS);
+				onImage.accept(null);
 			}
-		);
+		}, CAPTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+
+		drawManager.requestNextFrameListener(image ->
+		{
+			if (!delivered.compareAndSet(false, true))
+			{
+				return;
+			}
+			executor.execute(() -> onImage.accept(encodePng(image)));
+		});
 	}
 
-	private void buildRequestAndSend(HttpUrl url, MultipartBody.Builder requestBodyBuilder)
+	private static byte[] encodePng(Image image)
 	{
-		RequestBody requestBody = requestBodyBuilder.build();
+		if (!(image instanceof BufferedImage))
+		{
+			return null;
+		}
 
-		Request request = new Request.Builder()
+		try
+		{
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			ImageIO.write((BufferedImage) image, "png", out);
+			return out.toByteArray();
+		}
+		catch (IOException e)
+		{
+			log.warn("Error converting image to byte array", e);
+			return null;
+		}
+	}
+
+	private void postToAll(List<HttpUrl> urls, String payload, byte[] image)
+	{
+		RequestBody imageBody = image == null ? null : RequestBody.create(PNG, image);
+
+		for (HttpUrl url : urls)
+		{
+			MultipartBody.Builder builder = new MultipartBody.Builder()
+				.setType(MultipartBody.FORM)
+				.addFormDataPart("payload_json", payload);
+
+			if (imageBody != null)
+			{
+				builder.addFormDataPart("file", "image.png", imageBody);
+			}
+
+			Request request = new Request.Builder()
 				.url(url)
-				.post(requestBody)
+				.post(builder.build())
 				.build();
 
-		sendRequest(request);
+			sendRequest(request);
+		}
 	}
 
 	private void sendRequest(Request request)
@@ -141,18 +172,11 @@ class DiscordWebhookService
 				}
 
 				@Override
-				public void onResponse(Call call, Response response) throws IOException
+				public void onResponse(Call call, Response response)
 				{
 					response.close();
 				}
 			}
 		);
-	}
-
-	private static byte[] convertImageToByteArray(BufferedImage bufferedImage) throws IOException
-	{
-		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-		ImageIO.write(bufferedImage, "png", byteArrayOutputStream);
-		return byteArrayOutputStream.toByteArray();
 	}
 }

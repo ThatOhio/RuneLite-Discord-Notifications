@@ -20,7 +20,7 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 			keyName = "webhook",
 			name = "Webhook URL(s)",
-			description = "The Discord Webhook URL(s) to send messages to, separated by a newline.",
+			description = "The Discord Webhook URL(s) to send messages to. Put each on its own line, or separate them with commas.",
 			section = webhookConfig,
 			position = 0
 	)

@@ -1,5 +1,6 @@
 package com.discordnotifications;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
@@ -11,11 +12,12 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 
-import net.runelite.client.util.Text;
-
 import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,8 +25,8 @@ import java.util.regex.Pattern;
 @PluginDescriptor(name = "Discord Notifications")
 public class DiscordNotificationsPlugin extends Plugin
 {
-	private Hashtable<String, Integer> currentLevels;
-	private ArrayList<String> leveledSkills;
+	private final Map<String, Integer> currentLevels = new HashMap<>();
+	private final Set<String> leveledSkills = new LinkedHashSet<>();
 	private boolean shouldSendLevelMessage = false;
 	private boolean shouldSendQuestMessage = false;
 	private boolean shouldSendClueMessage = false;
@@ -46,6 +48,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		);
 	private static final Pattern COLLECTION_LOG_ITEM_REGEX = Pattern.compile("New item added to your collection log:.*", Pattern.CASE_INSENSITIVE);
 	private static final Pattern COMBAT_TASK_REGEX = Pattern.compile("Congratulations, you've completed an? (?:\\w+) combat task:.*", Pattern.CASE_INSENSITIVE);
+	private static final Pattern TAG_REGEXP = Pattern.compile("(<[^>]*>)|(@[^@\\s]+@)");
 
 	private static final ImmutableList<String> PET_MESSAGES =
 		ImmutableList.of(
@@ -72,8 +75,7 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
-		currentLevels = new Hashtable<String, Integer>();
-		leveledSkills = new ArrayList<String>();
+		resetState();
 	}
 
 	@Override
@@ -111,7 +113,7 @@ public class DiscordNotificationsPlugin extends Plugin
 				&& client.getWidget(InterfaceID.Questscroll.QUEST_TITLE) != null
 		) {
 			shouldSendQuestMessage = false;
-			String text = client.getWidget(InterfaceID.Questscroll.QUEST_TITLE).getText();
+			String text = sanitize(client.getWidget(InterfaceID.Questscroll.QUEST_TITLE).getText());
 			String questName = parseQuestCompletedWidget(text);
 			sendQuestMessage(questName);
 		}
@@ -133,37 +135,27 @@ public class DiscordNotificationsPlugin extends Plugin
 	}
 
 	@Subscribe
-	public void onStatChanged(net.runelite.api.events.StatChanged statChanged)
+	public void onStatChanged(StatChanged statChanged)
 	{
-		if (!config.includeLevelling())
-		{
-			return;
-		}
-
 		String skillName = statChanged.getSkill().getName();
 		int newLevel = statChanged.getLevel();
 
-		// .contains wasn't behaving so I went with == null
-		Integer previousLevel = currentLevels.get(skillName);
-		if (previousLevel == null || previousLevel == 0)
+		// The first StatChanged per skill after login seeds the cache. A level that is lower than the
+		// cached one is stale data, not a level-up, so only the cache is updated.
+		Integer previousLevel = currentLevels.put(skillName, newLevel);
+		if (previousLevel == null || previousLevel == 0 || newLevel <= previousLevel || !config.includeLevelling())
 		{
-			currentLevels.put(skillName, newLevel);
 			return;
 		}
 
-		if (previousLevel != newLevel)
+		// Certain activities can multilevel, check if any of the levels are valid for the message.
+		for (int level = previousLevel + 1; level <= newLevel; level++)
 		{
-			currentLevels.put(skillName, newLevel);
-
-			// Certain activities can multilevel, check if any of the levels are valid for the message.
-			for (int level = previousLevel + 1; level <= newLevel; level++)
+			if (shouldSendForThisLevel(level))
 			{
-				if (shouldSendForThisLevel(level))
-				{
-					leveledSkills.add(skillName);
-					shouldSendLevelMessage = true;
-					break;
-				}
+				leveledSkills.add(skillName);
+				shouldSendLevelMessage = true;
+				break;
 			}
 		}
 	}
@@ -176,7 +168,13 @@ public class DiscordNotificationsPlugin extends Plugin
 			return;
 		}
 
-		String chatMessage = event.getMessage();
+		String source = Strings.isNullOrEmpty(event.getName()) ? event.getSender() : event.getName();
+		if ("runelite".equals(source))
+		{
+			return;
+		}
+
+		String chatMessage = sanitize(event.getMessage());
 		if (config.includePets() && PET_MESSAGES.stream().anyMatch(chatMessage::contains))
 		{
 			sendPetMessage();
@@ -228,25 +226,20 @@ public class DiscordNotificationsPlugin extends Plugin
 					return;
 				}
 
-				String topText = client.getVarcStrValue(VarClientStr.NOTIFICATION_TOP_TEXT);
+				String topText = sanitize(client.getVarcStrValue(VarClientStr.NOTIFICATION_TOP_TEXT));
 				String bottomText = client.getVarcStrValue(VarClientStr.NOTIFICATION_BOTTOM_TEXT);
 
 				if (topText.equalsIgnoreCase("Collection log")
-						&& config.includeCollectionLogs()
-						&& config.sendCollectionLogScreenshot())
+						&& config.includeCollectionLogs())
 				{
-					String entry = Text.removeTags(bottomText).substring("New item:".length());
-					sendCollectionLogMessage(entry);
+					sendCollectionLogMessage(popupSubject(bottomText));
 				}
 
 				if (topText.equalsIgnoreCase("Combat Task Completed!")
 						&& config.includeCombatAchievements()
-						&& config.sendCombatAchievementsScreenshot()
 						&& client.getVarbitValue(Varbits.COMBAT_ACHIEVEMENTS_POPUP) == 0)
 				{
-					String[] s = bottomText.split("<.*?>");
-					String task = s[1].replaceAll("[:?]", "");
-					sendCombatAchievementMessage(task);
+					sendCombatAchievementMessage(popupSubject(bottomText));
 				}
 
 				notificationStarted = false;
@@ -273,92 +266,103 @@ public class DiscordNotificationsPlugin extends Plugin
 
 	private void sendQuestMessage(String questName)
 	{
-		String localName = client.getLocalPlayer().getName();
-
-		String questMessageString = config.questMessage().replaceAll("\\$name", localName)
-														 .replaceAll("\\$quest", questName);
-
-		webhookService.sendMessage(questMessageString, config.sendQuestingScreenshot());
+		sendMessage(config.questMessage().replace("$quest", questName), config.sendQuestingScreenshot());
 	}
 
-	private void sendCombatAchievementMessage(String task) {
-		String localName = client.getLocalPlayer().getName();
-
-		String combatAchievementMessageString =
-			config.combatAchievementsMessage()
-				  .replaceAll("\\$name", localName)
-				  .replaceAll("\\$achievement", task);
-
-		webhookService.sendMessage(combatAchievementMessageString, config.sendCombatAchievementsScreenshot());
+	private void sendCombatAchievementMessage(String task)
+	{
+		sendMessage(config.combatAchievementsMessage().replace("$achievement", task), config.sendCombatAchievementsScreenshot());
 	}
 
-	private void sendCollectionLogMessage(String entry) {
-		String localName = client.getLocalPlayer().getName();
-
-		String collectionLogMessageString =
-			config.collectionLogMessage()
-				.replaceAll("\\$name", localName)
-				.replaceAll("\\$entry", entry);
-
-		webhookService.sendMessage(collectionLogMessageString, config.sendCollectionLogScreenshot());
+	private void sendCollectionLogMessage(String entry)
+	{
+		sendMessage(config.collectionLogMessage().replace("$entry", entry), config.sendCollectionLogScreenshot());
 	}
 
 	private void sendDeathMessage()
 	{
-		String localName = client.getLocalPlayer().getName();
-
-		String deathMessageString = config.deathMessage().replaceAll("\\$name", localName);
-
-		webhookService.sendMessage(deathMessageString, config.sendDeathScreenshot());
+		sendMessage(config.deathMessage(), config.sendDeathScreenshot());
 	}
 
 	private void sendClueMessage()
 	{
-		String localName = client.getLocalPlayer().getName();
-
-		String clueMessage = config.clueMessage().replaceAll("\\$name", localName);
-
-		webhookService.sendMessage(clueMessage, config.sendClueScreenshot());
+		sendMessage(config.clueMessage(), config.sendClueScreenshot());
 	}
 
 	private void sendLevelMessage()
 	{
-		String localName = client.getLocalPlayer().getName();
-
-		String levelUpString = config.levelMessage().replaceAll("\\$name", localName);
-
-		String[] skills = new String[leveledSkills.size()];
-		skills = leveledSkills.toArray(skills);
+		Map<String, Integer> levels = new LinkedHashMap<>();
+		for (String skill : leveledSkills)
+		{
+			levels.put(skill, currentLevels.get(skill));
+		}
 		leveledSkills.clear();
 
-		for (int i = 0; i < skills.length; i++)
-		{
-			if(i != 0) {
-				levelUpString += config.andLevelMessage();
-			}
-			
-			if(config.includeTotalLevel()) {
-				levelUpString += config.totalLevelMessage();
-			}
+		String message = buildLevelMessage(
+			levels,
+			client.getTotalLevel(),
+			config.levelMessage(),
+			config.andLevelMessage(),
+			config.includeTotalLevel() ? config.totalLevelMessage() : "");
 
-			String fixed = levelUpString
-					.replaceAll("\\$skill", skills[i])
-					.replaceAll("\\$level", currentLevels.get(skills[i]).toString())
-					.replaceAll("\\$total" , Integer.toString(client.getTotalLevel()));
-
-			levelUpString = fixed;
-		}
-
-		webhookService.sendMessage(levelUpString, config.sendLevellingScreenshot());
+		sendMessage(message, config.sendLevellingScreenshot());
 	}
 
 	private void sendPetMessage()
 	{
-		String localName = client.getLocalPlayer().getName();
+		sendMessage(config.petMessage(), config.sendPetScreenshot());
+	}
 
-		String petMessageString = config.petMessage().replaceAll("\\$name", localName);
+	// The local player exists but has no name for the first ticks after login.
+	private void sendMessage(String message, boolean sendScreenshot)
+	{
+		Player player = client.getLocalPlayer();
+		String localName = player != null ? player.getName() : null;
+		if (Strings.isNullOrEmpty(localName))
+		{
+			log.debug("Dropping notification, local player name not available yet");
+			return;
+		}
 
-		webhookService.sendMessage(petMessageString, config.sendPetScreenshot());
+		webhookService.sendMessage(message.replace("$name", localName), sendScreenshot);
+	}
+
+	static String buildLevelMessage(Map<String, Integer> levels, int totalLevel,
+		String levelTemplate, String andTemplate, String totalTemplate)
+	{
+		StringBuilder message = new StringBuilder();
+		boolean first = true;
+		for (Map.Entry<String, Integer> entry : levels.entrySet())
+		{
+			message.append((first ? levelTemplate : andTemplate)
+				.replace("$skill", entry.getKey())
+				.replace("$level", entry.getValue().toString()));
+			first = false;
+		}
+		message.append(totalTemplate);
+
+		return message.toString().replace("$total", Integer.toString(totalLevel));
+	}
+
+	static String sanitize(String text)
+	{
+		if (text == null)
+		{
+			return "";
+		}
+
+		return TAG_REGEXP.matcher(text.replace("<br>", " "))
+			.replaceAll("")
+			.replace('\u00A0', ' ')
+			.trim();
+	}
+
+	// Popup body is "New item: <col=..>Item</col>" or "Task Completed: <col=..>Task</col>".
+	static String popupSubject(String bottomText)
+	{
+		String text = sanitize(bottomText);
+		int colon = text.indexOf(':');
+		return colon < 0 ? text : text.substring(colon + 1).trim();
 	}
 
 	private void resetState()
