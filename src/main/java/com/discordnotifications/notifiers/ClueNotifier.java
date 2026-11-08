@@ -5,8 +5,11 @@ import com.discordnotifications.ItemStackFormatter;
 import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import lombok.Value;
+import net.runelite.api.Item;
+import net.runelite.api.ItemContainer;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.util.QuantityFormatter;
 
@@ -60,13 +63,8 @@ public class ClueNotifier extends BaseNotifier
 			return;
 		}
 
-		Widget items = client.getWidget(InterfaceID.TrailRewardscreen.ITEMS);
-		Widget[] children = items == null ? null : items.getChildren();
-		if (children != null)
-		{
-			sendClue(pending, rewards(children));
-			reset();
-		}
+		sendClue(pending, rewards());
+		reset();
 	}
 
 	// The chat message comes first, so a screen that never loaded can't pair with the next clue
@@ -78,26 +76,49 @@ public class ClueNotifier extends BaseNotifier
 		}
 	}
 
-	private List<ItemStackFormatter.Stack> rewards(Widget[] children)
+	private List<ItemStackFormatter.Stack> rewards()
 	{
 		Map<Integer, Integer> quantities = new LinkedHashMap<>();
-		for (Widget child : children)
+		ItemContainer container = client.getItemContainer(InventoryID.TRAIL_REWARDINV);
+		if (container != null)
 		{
-			if (child != null && child.getItemId() > -1 && child.getItemQuantity() > 0)
+			for (Item item : container.getItems())
 			{
-				quantities.merge(child.getItemId(), child.getItemQuantity(), Integer::sum);
+				addReward(quantities, item.getId(), item.getQuantity());
+			}
+		}
+
+		Widget items = client.getWidget(InterfaceID.TrailRewardscreen.ITEMS);
+		Widget[] children = items == null ? null : items.getChildren();
+		if (quantities.isEmpty() && children != null)
+		{
+			for (Widget child : children)
+			{
+				if (child != null)
+				{
+					addReward(quantities, child.getItemId(), child.getItemQuantity());
+				}
 			}
 		}
 
 		return quantities.entrySet().stream()
-			.map(entry -> itemStackFormatter.stack(entry.getKey(), entry.getValue()))
+			.map(entry -> itemStackFormatter.stackWithStorePrice(entry.getKey(), entry.getValue()))
 			.collect(Collectors.toList());
+	}
+
+	private static void addReward(Map<Integer, Integer> quantities, int itemId, int quantity)
+	{
+		if (itemId > -1 && quantity > 0)
+		{
+			quantities.merge(itemId, quantity, Integer::sum);
+		}
 	}
 
 	private void sendClue(CompletedClue completed, List<ItemStackFormatter.Stack> rewards)
 	{
 		long value = ItemStackFormatter.totalValue(rewards);
-		if (value < config.minClueValue())
+		// No rewards means we couldn't read them, so there's no value to filter on
+		if (!rewards.isEmpty() && value < config.minClueValue())
 		{
 			return;
 		}
