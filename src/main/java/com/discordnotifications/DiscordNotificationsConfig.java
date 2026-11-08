@@ -463,6 +463,41 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean sendLootScreenshot() { return false; }
 
 	@ConfigSection(
+		name = "Achievement Diaries",
+		description = "The config for achievement diaries",
+		position = 8,
+		closedByDefault = true
+	)
+	String diaryConfig = "diaryConfig";
+
+	@ConfigItem(
+		keyName = "includeDiaries",
+		name = "Achievement Diary Notifications",
+		description = "Message to send to Discord when you finish an achievement diary",
+		section = diaryConfig,
+		position = 1
+	)
+	default boolean includeDiaries() { return false; }
+
+	@ConfigItem(
+		keyName = "minDiaryDifficulty",
+		name = "Minimum difficulty",
+		description = "Only diaries of this difficulty or higher will send a message.",
+		section = diaryConfig,
+		position = 2
+	)
+	default DiaryDifficulty minDiaryDifficulty() { return DiaryDifficulty.EASY; }
+
+	@ConfigItem(
+		keyName = "sendDiaryScreenshot",
+		name = "Include achievement diary screenshots",
+		description = "Include a screenshot with the Discord notification when you finish an achievement diary",
+		section = diaryConfig,
+		position = 100
+	)
+	default boolean sendDiaryScreenshot() { return false; }
+
+	@ConfigSection(
 		name = "Webhook overrides",
 		description = "Send an event to its own channel instead of the main webhook. Leave one blank to use the main webhook. Put each URL on its own line if you want more than one.",
 		position = 999,
@@ -541,6 +576,15 @@ public interface DiscordNotificationsConfig extends Config {
 		position = 8
 	)
 	default String lootWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "diaryWebhook",
+		name = "Achievement diaries",
+		description = "Webhook URL(s) for achievement diaries.",
+		section = webhookOverridesConfig,
+		position = 9
+	)
+	default String diaryWebhook() { return ""; }
 
 	@ConfigSection(
 		name = "Advanced: message templates",
@@ -639,4 +683,13 @@ public interface DiscordNotificationsConfig extends Config {
 		position = 8
 	)
 	default String lootMessage() { return "$name has just received $items from $source$kc, whole drop worth $value gp"; }
+
+	@ConfigItem(
+		keyName = "diaryMessage",
+		name = "Achievement Diary Message",
+		description = "Sent when you finish an achievement diary. Use $name, $area, $difficulty and $totalDiaries (how many you've finished across every area and difficulty).",
+		section = messageTemplatesConfig,
+		position = 9
+	)
+	default String diaryMessage() { return "$name has just completed the $difficulty $area diary - Total diaries: $totalDiaries"; }
 }

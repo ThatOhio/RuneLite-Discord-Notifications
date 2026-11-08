@@ -4,6 +4,7 @@ import com.discordnotifications.notifiers.ClueNotifier;
 import com.discordnotifications.notifiers.CollectionLogNotifier;
 import com.discordnotifications.notifiers.CombatAchievementNotifier;
 import com.discordnotifications.notifiers.DeathNotifier;
+import com.discordnotifications.notifiers.DiaryNotifier;
 import com.discordnotifications.notifiers.LevelNotifier;
 import com.discordnotifications.notifiers.LootNotifier;
 import com.discordnotifications.notifiers.PetNotifier;
@@ -20,6 +21,7 @@ import net.runelite.api.events.InteractingChanged;
 import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.UsernameChanged;
+import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -58,6 +60,9 @@ public class DiscordNotificationsPlugin extends Plugin
 
 	@Inject
 	private CombatAchievementNotifier combatAchievementNotifier;
+
+	@Inject
+	private DiaryNotifier diaryNotifier;
 
 	@Inject
 	private LootNotifier lootNotifier;
@@ -99,6 +104,7 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged gameStateChanged)
 	{
+		diaryNotifier.onGameStateChanged(gameStateChanged);
 		if (gameStateChanged.getGameState().equals(GameState.LOGIN_SCREEN))
 		{
 			resetState();
@@ -119,6 +125,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		petNotifier.onGameTick();
 		collectionLogNotifier.onGameTick();
 		lootNotifier.onGameTick();
+		diaryNotifier.onGameTick();
 	}
 
 	@Subscribe
@@ -128,12 +135,24 @@ public class DiscordNotificationsPlugin extends Plugin
 	}
 
 	@Subscribe
+	public void onVarbitChanged(VarbitChanged event)
+	{
+		diaryNotifier.onVarbitChanged(event);
+	}
+
+	@Subscribe
 	public void onChatMessage(ChatMessage event)
 	{
 		ChatMessageType type = event.getType();
 		if (type == ChatMessageType.CLAN_MESSAGE || type == ChatMessageType.CLAN_GUEST_MESSAGE || type == ChatMessageType.CLAN_GIM_MESSAGE)
 		{
 			petNotifier.onClanMessage(sanitize(event.getMessage()));
+			return;
+		}
+
+		if (type == ChatMessageType.MESBOX)
+		{
+			diaryNotifier.onMessageBox(sanitize(event.getMessage()));
 			return;
 		}
 
@@ -225,5 +244,6 @@ public class DiscordNotificationsPlugin extends Plugin
 		petNotifier.reset();
 		collectionLogNotifier.reset();
 		lootNotifier.reset();
+		diaryNotifier.reset();
 	}
 }

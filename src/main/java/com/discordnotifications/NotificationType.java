@@ -7,6 +7,7 @@ public enum NotificationType
 	COLLECTION_LOG,
 	LOOT,
 	COMBAT_ACHIEVEMENT,
+	DIARY,
 	CLUE,
 	QUEST,
 	LEVEL,

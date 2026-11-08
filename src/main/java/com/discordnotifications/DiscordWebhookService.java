@@ -127,6 +127,8 @@ public class DiscordWebhookService
 				return config.lootWebhook();
 			case COMBAT_ACHIEVEMENT:
 				return config.combatAchievementWebhook();
+			case DIARY:
+				return config.diaryWebhook();
 			case CLUE:
 				return config.clueWebhook();
 			case QUEST:

@@ -1,5 +1,5 @@
 # Discord Notifications
-This is a plugin for RuneLite which sends a message to your discord channel when you level up, complete a quest or clue scroll, die, get a pet, get a valuable drop, add an item to your collection log or complete a combat task. Each one can be turned on or off separately, the message text can be edited, and you can optionally attach a screenshot as proof.
+This is a plugin for RuneLite which sends a message to your discord channel when you level up, complete a quest or clue scroll, die, get a pet, get a valuable drop, add an item to your collection log, complete a combat task or finish an achievement diary. Each one can be turned on or off separately, the message text can be edited, and you can optionally attach a screenshot as proof.
 
 In order to use this plugin you will need to create a webhook on your discord server. Below are instructions for how to do so:
 1. Open your Server Settings and head into the Integrations tab
