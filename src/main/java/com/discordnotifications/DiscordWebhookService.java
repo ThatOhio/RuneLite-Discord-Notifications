@@ -125,6 +125,8 @@ public class DiscordWebhookService
 				return config.collectionLogWebhook();
 			case LOOT:
 				return config.lootWebhook();
+			case KILL_COUNT:
+				return config.killCountWebhook();
 			case COMBAT_ACHIEVEMENT:
 				return config.combatAchievementWebhook();
 			case DIARY:

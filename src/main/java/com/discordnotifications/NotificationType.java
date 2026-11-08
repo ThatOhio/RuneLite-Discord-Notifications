@@ -6,6 +6,7 @@ public enum NotificationType
 	PET,
 	COLLECTION_LOG,
 	LOOT,
+	KILL_COUNT,
 	COMBAT_ACHIEVEMENT,
 	DIARY,
 	CLUE,

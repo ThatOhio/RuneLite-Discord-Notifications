@@ -5,6 +5,7 @@ import com.discordnotifications.notifiers.CollectionLogNotifier;
 import com.discordnotifications.notifiers.CombatAchievementNotifier;
 import com.discordnotifications.notifiers.DeathNotifier;
 import com.discordnotifications.notifiers.DiaryNotifier;
+import com.discordnotifications.notifiers.KillCountNotifier;
 import com.discordnotifications.notifiers.LevelNotifier;
 import com.discordnotifications.notifiers.LootNotifier;
 import com.discordnotifications.notifiers.PetNotifier;
@@ -63,6 +64,9 @@ public class DiscordNotificationsPlugin extends Plugin
 
 	@Inject
 	private DiaryNotifier diaryNotifier;
+
+	@Inject
+	private KillCountNotifier killCountNotifier;
 
 	@Inject
 	private LootNotifier lootNotifier;
@@ -126,6 +130,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		collectionLogNotifier.onGameTick();
 		lootNotifier.onGameTick();
 		diaryNotifier.onGameTick();
+		killCountNotifier.onGameTick();
 	}
 
 	@Subscribe
@@ -156,6 +161,12 @@ public class DiscordNotificationsPlugin extends Plugin
 			return;
 		}
 
+		if (type == ChatMessageType.FRIENDSCHATNOTIFICATION)
+		{
+			killCountNotifier.onFriendsChatNotification(sanitize(event.getMessage()));
+			return;
+		}
+
 		if (type != ChatMessageType.GAMEMESSAGE)
 		{
 			return;
@@ -169,6 +180,7 @@ public class DiscordNotificationsPlugin extends Plugin
 
 		String message = sanitize(event.getMessage());
 		killCountService.onGameMessage(message);
+		killCountNotifier.onGameMessage(message);
 		petNotifier.onGameMessage(message);
 		collectionLogNotifier.onGameMessage(message);
 		combatAchievementNotifier.onGameMessage(message);
@@ -245,5 +257,6 @@ public class DiscordNotificationsPlugin extends Plugin
 		collectionLogNotifier.reset();
 		lootNotifier.reset();
 		diaryNotifier.reset();
+		killCountNotifier.reset();
 	}
 }

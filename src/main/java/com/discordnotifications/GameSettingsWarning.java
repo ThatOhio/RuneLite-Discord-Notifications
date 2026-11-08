@@ -37,7 +37,7 @@ public class GameSettingsWarning
 	{
 		if (event.getGroupId() == InterfaceID.SETTINGS)
 		{
-			warn(config.includeCollectionLogs(), config.includePets(), config.includeLoot(), config.includeCombatAchievements());
+			warn(config.includeCollectionLogs(), config.includePets(), config.includeLoot(), config.includeCombatAchievements(), config.includeKillCounts());
 		}
 	}
 
@@ -50,10 +50,10 @@ public class GameSettingsWarning
 
 		String key = event.getKey();
 		// Config changes don't arrive on the client thread
-		clientThread.invokeLater(() -> warn(key.equals("includeCollectionLogs"), key.equals("includePets"), key.equals("includeLoot"), key.equals("includeCombatAchievements")));
+		clientThread.invokeLater(() -> warn(key.equals("includeCollectionLogs"), key.equals("includePets"), key.equals("includeLoot"), key.equals("includeCombatAchievements"), key.equals("includeKillCounts")));
 	}
 
-	private void warn(boolean collectionLog, boolean pets, boolean loot, boolean combatAchievements)
+	private void warn(boolean collectionLog, boolean pets, boolean loot, boolean combatAchievements, boolean killCounts)
 	{
 		List<String> problems = new ArrayList<>();
 		if (collectionLog && client.getVarbitValue(VarbitID.OPTION_COLLECTION_NEW_ITEM) == 0)
@@ -64,7 +64,7 @@ public class GameSettingsWarning
 		{
 			problems.add("Turn on Loot drop notifications and Untradeable loot notifications or pets can post without a name.");
 		}
-		if ((loot || pets || collectionLog) && client.getVarbitValue(VarbitID.BOSS_KILLCOUNT_FILTERED) > 0)
+		if ((loot || pets || collectionLog || killCounts) && client.getVarbitValue(VarbitID.BOSS_KILLCOUNT_FILTERED) > 0)
 		{
 			problems.add("Turn off Filter out boss kill-count with spam-filter or kill counts can be missing from posts.");
 		}
