@@ -1,5 +1,7 @@
 package com.discordnotifications.notifiers;
 
+import com.discordnotifications.Notification;
+import com.discordnotifications.NotificationType;
 import net.runelite.api.Actor;
 import net.runelite.api.Player;
 import net.runelite.api.events.ActorDeath;
@@ -20,7 +22,11 @@ public class DeathNotifier extends BaseNotifier
 			Player player = (Player) actor;
 			if (player == client.getLocalPlayer())
 			{
-				send(config.deathMessage(), config.sendDeathScreenshot());
+				send(Notification.builder()
+					.type(NotificationType.DEATH)
+					.text(config.deathMessage())
+					.screenshot(config.sendDeathScreenshot())
+					.build());
 			}
 		}
 	}

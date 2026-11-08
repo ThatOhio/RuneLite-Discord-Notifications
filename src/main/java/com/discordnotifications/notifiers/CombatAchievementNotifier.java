@@ -1,5 +1,7 @@
 package com.discordnotifications.notifiers;
 
+import com.discordnotifications.Notification;
+import com.discordnotifications.NotificationType;
 import net.runelite.api.ScriptID;
 import net.runelite.api.VarClientStr;
 import net.runelite.api.Varbits;
@@ -38,7 +40,11 @@ public class CombatAchievementNotifier extends BaseNotifier
 						&& client.getVarbitValue(Varbits.COMBAT_ACHIEVEMENTS_POPUP) == 0)
 				{
 					String task = popupSubject(client.getVarcStrValue(VarClientStr.NOTIFICATION_BOTTOM_TEXT));
-					send(config.combatAchievementsMessage().replace("$achievement", task), config.sendCombatAchievementsScreenshot());
+					send(Notification.builder()
+						.type(NotificationType.COMBAT_ACHIEVEMENT)
+						.text(config.combatAchievementsMessage().replace("$achievement", task))
+						.screenshot(config.sendCombatAchievementsScreenshot())
+						.build());
 				}
 				break;
 		}

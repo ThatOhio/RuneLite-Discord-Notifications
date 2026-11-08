@@ -1,5 +1,7 @@
 package com.discordnotifications.notifiers;
 
+import com.discordnotifications.Notification;
+import com.discordnotifications.NotificationType;
 import com.google.common.collect.ImmutableList;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.InterfaceID;
@@ -55,7 +57,11 @@ public class QuestNotifier extends BaseNotifier
 
 	private void sendQuestMessage(String questName)
 	{
-		send(config.questMessage().replace("$quest", questName), config.sendQuestingScreenshot());
+		send(Notification.builder()
+			.type(NotificationType.QUEST)
+			.text(config.questMessage().replace("$quest", questName))
+			.screenshot(config.sendQuestingScreenshot())
+			.build());
 	}
 
 	static String parseQuestCompletedWidget(final String text)

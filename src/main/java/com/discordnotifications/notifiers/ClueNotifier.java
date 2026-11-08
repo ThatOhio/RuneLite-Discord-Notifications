@@ -1,5 +1,7 @@
 package com.discordnotifications.notifiers;
 
+import com.discordnotifications.Notification;
+import com.discordnotifications.NotificationType;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.InterfaceID;
 
@@ -29,7 +31,11 @@ public class ClueNotifier extends BaseNotifier
 
 		if (shouldSendClueMessage && didCompleteClue && config.includeClues()) {
 			shouldSendClueMessage = false;
-			send(config.clueMessage(), config.sendClueScreenshot());
+			send(Notification.builder()
+				.type(NotificationType.CLUE)
+				.text(config.clueMessage())
+				.screenshot(config.sendClueScreenshot())
+				.build());
 		}
 	}
 }

@@ -55,7 +55,7 @@ public class DiscordWebhookService
 	@Inject
 	private DiscordNotificationsConfig config;
 
-	public void sendMessage(String message, boolean sendScreenshot)
+	public void send(Notification notification)
 	{
 		List<HttpUrl> urls = parseWebhookUrls(config.webhook());
 		if (urls.isEmpty())
@@ -64,10 +64,10 @@ public class DiscordWebhookService
 		}
 
 		DiscordWebhookBody body = new DiscordWebhookBody();
-		body.setContent(message);
+		body.setContent(notification.getText());
 		String payload = GSON.toJson(body);
 
-		if (sendScreenshot)
+		if (notification.isScreenshot())
 		{
 			captureScreenshot(image -> postToAll(urls, payload, image));
 		}

@@ -1,5 +1,7 @@
 package com.discordnotifications.notifiers;
 
+import com.discordnotifications.Notification;
+import com.discordnotifications.NotificationType;
 import net.runelite.api.events.StatChanged;
 
 import javax.inject.Singleton;
@@ -102,7 +104,11 @@ public class LevelNotifier extends BaseNotifier
 			config.andLevelMessage(),
 			config.includeTotalLevel() ? config.totalLevelMessage() : "");
 
-		send(message, config.sendLevellingScreenshot());
+		send(Notification.builder()
+			.type(NotificationType.LEVEL)
+			.text(message)
+			.screenshot(config.sendLevellingScreenshot())
+			.build());
 	}
 
 	static String buildLevelMessage(Map<String, Integer> levels, int totalLevel,

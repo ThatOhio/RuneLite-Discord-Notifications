@@ -1,5 +1,7 @@
 package com.discordnotifications.notifiers;
 
+import com.discordnotifications.Notification;
+import com.discordnotifications.NotificationType;
 import net.runelite.api.ScriptID;
 import net.runelite.api.VarClientStr;
 import net.runelite.api.events.ScriptPreFired;
@@ -35,7 +37,11 @@ public class CollectionLogNotifier extends BaseNotifier
 				if (topText.equalsIgnoreCase("Collection log") && config.includeCollectionLogs())
 				{
 					String entry = popupSubject(client.getVarcStrValue(VarClientStr.NOTIFICATION_BOTTOM_TEXT));
-					send(config.collectionLogMessage().replace("$entry", entry), config.sendCollectionLogScreenshot());
+					send(Notification.builder()
+						.type(NotificationType.COLLECTION_LOG)
+						.text(config.collectionLogMessage().replace("$entry", entry))
+						.screenshot(config.sendCollectionLogScreenshot())
+						.build());
 				}
 				break;
 		}

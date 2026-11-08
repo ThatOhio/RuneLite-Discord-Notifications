@@ -1,5 +1,7 @@
 package com.discordnotifications.notifiers;
 
+import com.discordnotifications.Notification;
+import com.discordnotifications.NotificationType;
 import com.google.common.collect.ImmutableList;
 
 import javax.inject.Singleton;
@@ -18,7 +20,11 @@ public class PetNotifier extends BaseNotifier
 	{
 		if (config.includePets() && PET_MESSAGES.stream().anyMatch(chatMessage::contains))
 		{
-			send(config.petMessage(), config.sendPetScreenshot());
+			send(Notification.builder()
+				.type(NotificationType.PET)
+				.text(config.petMessage())
+				.screenshot(config.sendPetScreenshot())
+				.build());
 		}
 	}
 }

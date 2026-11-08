@@ -2,6 +2,7 @@ package com.discordnotifications.notifiers;
 
 import com.discordnotifications.DiscordNotificationsConfig;
 import com.discordnotifications.DiscordWebhookService;
+import com.discordnotifications.Notification;
 import com.google.common.base.Strings;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -33,7 +34,7 @@ public abstract class BaseNotifier
 	}
 
 	// The local player exists but has no name for the first ticks after login.
-	protected final void send(String message, boolean sendScreenshot)
+	protected final void send(Notification notification)
 	{
 		String localName = playerName();
 		if (Strings.isNullOrEmpty(localName))
@@ -42,7 +43,9 @@ public abstract class BaseNotifier
 			return;
 		}
 
-		webhookService.sendMessage(message.replace("$name", localName), sendScreenshot);
+		webhookService.send(notification.toBuilder()
+			.text(notification.getText().replace("$name", localName))
+			.build());
 	}
 
 	protected String playerName()
