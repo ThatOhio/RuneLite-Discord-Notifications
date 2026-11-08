@@ -5,8 +5,8 @@ import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import com.discordnotifications.WildcardList;
 import net.runelite.api.ScriptID;
-import net.runelite.api.VarClientStr;
 import net.runelite.api.events.ScriptPreFired;
+import net.runelite.api.gameval.VarClientID;
 import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.client.callback.ClientThread;
@@ -89,10 +89,10 @@ public class CollectionLogNotifier extends BaseNotifier
 				}
 				popupStarted = false;
 
-				String topText = sanitize(client.getVarcStrValue(VarClientStr.NOTIFICATION_TOP_TEXT));
+				String topText = sanitize(client.getVarcStrValue(VarClientID.NOTIFICATION_TITLE));
 				if (topText.equalsIgnoreCase("Collection log") && config.includeCollectionLogs())
 				{
-					queueEntry(popupSubject(client.getVarcStrValue(VarClientStr.NOTIFICATION_BOTTOM_TEXT)));
+					queueEntry(popupSubject(client.getVarcStrValue(VarClientID.NOTIFICATION_MAIN)));
 				}
 				break;
 		}

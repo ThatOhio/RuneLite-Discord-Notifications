@@ -6,8 +6,8 @@ import com.discordnotifications.NotificationType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import net.runelite.api.ScriptID;
-import net.runelite.api.VarClientStr;
 import net.runelite.api.events.ScriptPreFired;
+import net.runelite.api.gameval.VarClientID;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -108,8 +108,8 @@ public class PetNotifier extends BaseNotifier
 			return;
 		}
 
-		String topText = sanitize(client.getVarcStrValue(VarClientStr.NOTIFICATION_TOP_TEXT));
-		String entry = popupSubject(client.getVarcStrValue(VarClientStr.NOTIFICATION_BOTTOM_TEXT));
+		String topText = sanitize(client.getVarcStrValue(VarClientID.NOTIFICATION_TITLE));
+		String entry = popupSubject(client.getVarcStrValue(VarClientID.NOTIFICATION_MAIN));
 		if (topText.equalsIgnoreCase("Collection log") && isPet(entry))
 		{
 			pet = entry;
