@@ -38,7 +38,7 @@ import static net.runelite.http.api.RuneLiteAPI.GSON;
  */
 @Slf4j
 @Singleton
-class DiscordWebhookService
+public class DiscordWebhookService
 {
 	private static final long CAPTURE_TIMEOUT_MS = 2_000;
 	private static final MediaType PNG = MediaType.parse("image/png");
@@ -55,7 +55,7 @@ class DiscordWebhookService
 	@Inject
 	private DiscordNotificationsConfig config;
 
-	void sendMessage(String message, boolean sendScreenshot)
+	public void send(Notification notification)
 	{
 		List<HttpUrl> urls = parseWebhookUrls(config.webhook());
 		if (urls.isEmpty())
@@ -64,10 +64,10 @@ class DiscordWebhookService
 		}
 
 		DiscordWebhookBody body = new DiscordWebhookBody();
-		body.setContent(message);
+		body.setContent(notification.getText());
 		String payload = GSON.toJson(body);
 
-		if (sendScreenshot)
+		if (notification.isScreenshot())
 		{
 			captureScreenshot(image -> postToAll(urls, payload, image));
 		}
