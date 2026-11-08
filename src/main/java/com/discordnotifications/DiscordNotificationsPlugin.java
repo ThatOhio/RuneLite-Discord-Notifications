@@ -23,6 +23,7 @@ import net.runelite.api.events.UsernameChanged;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.events.NpcLootReceived;
 import net.runelite.client.events.PlayerLootReceived;
 import net.runelite.client.events.ServerNpcLoot;
@@ -67,6 +68,9 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Inject
 	private NotificationQueue notificationQueue;
 
+	@Inject
+	private GameSettingsWarning gameSettingsWarning;
+
 	@Provides
 	DiscordNotificationsConfig provideConfig(ConfigManager configManager)
 	{
@@ -99,6 +103,12 @@ public class DiscordNotificationsPlugin extends Plugin
 		{
 			resetState();
 		}
+	}
+
+	@Subscribe
+	public void onConfigChanged(ConfigChanged event)
+	{
+		gameSettingsWarning.onConfigChanged(event);
 	}
 
 	@Subscribe
@@ -166,6 +176,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		killCountService.onWidgetLoaded(event);
 		questNotifier.onWidgetLoaded(event);
 		clueNotifier.onWidgetLoaded(event);
+		gameSettingsWarning.onWidgetLoaded(event);
 	}
 
 	// Before the loot tracker, so its saved kills don't already include this one
