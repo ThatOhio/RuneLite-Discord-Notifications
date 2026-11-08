@@ -198,6 +198,15 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean includePets() { return false; }
 
 	@ConfigItem(
+			keyName = "notifyDuplicatePets",
+			name = "Notify duplicate pets",
+			description = "Also send a message when you would have got a pet you already have.",
+			section = petConfig,
+			position = 1
+	)
+	default boolean notifyDuplicatePets() { return true; }
+
+	@ConfigItem(
 			keyName = "sendPetScreenshot",
 			name = "Include Pet screenshots",
 			description = "Include a screenshot with the Discord notification when you receive a pet.",
@@ -273,7 +282,7 @@ public interface DiscordNotificationsConfig extends Config {
 	String messageTemplatesConfig = "messageTemplatesConfig";
 
 	@ConfigItem(
-		keyName = "levelMessage",
+		keyName = "levelTemplate",
 		name = "Level Message",
 		description = "Sent when you level up. Use $name, $skills (like Attack to 70 and Strength to 72) and $total. $skill and $level only give the first skill.",
 		section = messageTemplatesConfig,
@@ -309,13 +318,13 @@ public interface DiscordNotificationsConfig extends Config {
 	default String clueMessage() { return "$name has just completed a clue scroll!"; }
 
 	@ConfigItem(
-		keyName = "petMessage",
+		keyName = "petTemplate",
 		name = "Pet Message",
-		description = "Sent when you get a pet. Use $name.",
+		description = "Sent when you get a pet. Use $name, $pet, $kc (like: at 1,234 kills) and $duplicate. Put $kc and $duplicate straight after another word, they add their own space and are blank when unknown.",
 		section = messageTemplatesConfig,
 		position = 5
 	)
-	default String petMessage() { return "$name has just received a pet!"; }
+	default String petMessage() { return "$name just got a pet: $pet$kc$duplicate"; }
 
 	@ConfigItem(
 		keyName = "collectionLogMessage",

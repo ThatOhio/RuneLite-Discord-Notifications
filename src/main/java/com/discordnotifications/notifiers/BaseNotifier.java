@@ -51,6 +51,7 @@ public abstract class BaseNotifier
 
 		webhookService.send(notification.toBuilder()
 			.text(Template.render(notification.getText(), values))
+			.placeholders(values)
 			.build());
 	}
 

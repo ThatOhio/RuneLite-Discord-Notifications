@@ -6,6 +6,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,6 +23,8 @@ class NotificationQueue
 {
 	private static final long WINDOW_MS = 3_000;
 	private static final long SWEEP_INTERVAL_MS = 500;
+	// PetNotifier can hold a pet for 6 game ticks, the clog line has to still be here when it lands
+	private static final long COLLECTION_LOG_WINDOW_MS = 4_500;
 
 	interface Poster
 	{
@@ -82,8 +85,14 @@ class NotificationQueue
 
 	synchronized void add(List<String> urls, Notification notification)
 	{
-		Batch batch = batches.computeIfAbsent(urls, u -> new Batch(u, System.currentTimeMillis() + WINDOW_MS));
+		long now = System.currentTimeMillis();
+		Batch batch = batches.computeIfAbsent(urls, u -> new Batch(u, now + WINDOW_MS));
 		batch.notifications.add(notification);
+
+		if (notification.getType() == NotificationType.COLLECTION_LOG)
+		{
+			batch.deadline = Math.max(batch.deadline, now + COLLECTION_LOG_WINDOW_MS);
+		}
 
 		if (notification.isScreenshot() && !batch.captureRequested)
 		{
@@ -120,16 +129,53 @@ class NotificationQueue
 
 	static String join(List<Notification> notifications)
 	{
-		return notifications.stream()
+		return mergePet(notifications).stream()
 			.sorted(Comparator.comparing(Notification::getType))
 			.map(Notification::getText)
 			.collect(Collectors.joining("\n"));
 	}
 
+	private static List<Notification> mergePet(List<Notification> notifications)
+	{
+		Notification pet = notifications.stream()
+			.filter(n -> n.getType() == NotificationType.PET)
+			.findFirst()
+			.orElse(null);
+		if (pet == null)
+		{
+			return notifications;
+		}
+
+		String name = pet.getPlaceholders().get("pet");
+		if (name != null)
+		{
+			return notifications.stream()
+				.filter(n -> n.getType() != NotificationType.COLLECTION_LOG
+					|| !name.equalsIgnoreCase(n.getPlaceholders().get("entry")))
+				.collect(Collectors.toList());
+		}
+
+		List<Notification> logs = notifications.stream()
+			.filter(n -> n.getType() == NotificationType.COLLECTION_LOG)
+			.collect(Collectors.toList());
+		if (pet.getNamedText() == null || logs.size() != 1)
+		{
+			return notifications;
+		}
+
+		Map<String, String> values = new HashMap<>(pet.getPlaceholders());
+		values.put("pet", logs.get(0).getPlaceholders().get("entry"));
+
+		List<Notification> merged = new ArrayList<>(notifications);
+		merged.remove(logs.get(0));
+		merged.set(merged.indexOf(pet), pet.toBuilder().text(Template.render(pet.getNamedText(), values)).build());
+		return merged;
+	}
+
 	private static class Batch
 	{
 		final List<String> urls;
-		final long deadline;
+		long deadline;
 		final List<Notification> notifications = new ArrayList<>();
 		boolean captureRequested;
 		boolean captureDone;

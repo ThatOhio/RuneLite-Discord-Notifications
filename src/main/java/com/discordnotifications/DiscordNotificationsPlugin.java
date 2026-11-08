@@ -95,6 +95,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		clueNotifier.onGameTick();
 		questNotifier.onGameTick();
 		levelNotifier.onGameTick();
+		petNotifier.onGameTick();
 	}
 
 	@Subscribe
@@ -106,7 +107,14 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Subscribe
 	public void onChatMessage(ChatMessage event)
 	{
-		if (event.getType() != ChatMessageType.GAMEMESSAGE)
+		ChatMessageType type = event.getType();
+		if (type == ChatMessageType.CLAN_MESSAGE || type == ChatMessageType.CLAN_GUEST_MESSAGE || type == ChatMessageType.CLAN_GIM_MESSAGE)
+		{
+			petNotifier.onClanMessage(sanitize(event.getMessage()));
+			return;
+		}
+
+		if (type != ChatMessageType.GAMEMESSAGE)
 		{
 			return;
 		}
@@ -138,6 +146,7 @@ public class DiscordNotificationsPlugin extends Plugin
 	{
 		collectionLogNotifier.onScriptPreFired(scriptPreFired);
 		combatAchievementNotifier.onScriptPreFired(scriptPreFired);
+		petNotifier.onScriptPreFired(scriptPreFired);
 	}
 
 	private void resetState()
@@ -145,6 +154,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		levelNotifier.reset();
 		questNotifier.reset();
 		clueNotifier.reset();
+		petNotifier.reset();
 		collectionLogNotifier.reset();
 		combatAchievementNotifier.reset();
 	}
