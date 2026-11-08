@@ -11,8 +11,11 @@ import com.discordnotifications.WorldUtils;
 import com.google.common.collect.ImmutableMap;
 import lombok.Value;
 import net.runelite.api.ChatMessageType;
+import net.runelite.api.Item;
+import net.runelite.api.ItemContainer;
 import net.runelite.api.NPCComposition;
 import net.runelite.api.Player;
+import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.chat.QueuedMessage;
@@ -34,6 +37,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -64,10 +68,21 @@ public class LootNotifier extends BaseNotifier
 	@Inject
 	private ChatMessageManager chatMessageManager;
 
+	private final List<PendingLoot> pendingEventLoot = new ArrayList<>();
+	private Map<Integer, Integer> wornLastTick = Collections.emptyMap();
 	private boolean warnedLootTrackerOff;
+
+	@Override
+	public void reset()
+	{
+		pendingEventLoot.clear();
+		wornLastTick = Collections.emptyMap();
+	}
 
 	public void onGameTick()
 	{
+		flushEventLoot();
+
 		if (warnedLootTrackerOff || !config.includeLoot() || !killCountService.lootTrackerDisabled())
 		{
 			return;
@@ -129,8 +144,80 @@ public class LootNotifier extends BaseNotifier
 			|| (type == LootRecordType.NPC && KillCountService.LOOT_RECEIVED_NPCS.contains(event.getName())))
 		{
 			String source = killCountService.getStandardizedSource(event);
-			handleLoot(event.getItems(), source, KillCountService.standardizedType(source, type));
+			LootRecordType recordType = KillCountService.standardizedType(source, type);
+			if (type == LootRecordType.EVENT)
+			{
+				// KC is read now, the loot tracker has saved this kill by the next tick
+				pendingEventLoot.add(new PendingLoot(event.getItems(), source, killCountService.getKillCount(recordType, source)));
+			}
+			else
+			{
+				handleLoot(event.getItems(), source, recordType);
+			}
 		}
+	}
+
+	// Event loot is an inventory diff, so gear taken off on the same tick looks like loot
+	private void flushEventLoot()
+	{
+		Map<Integer, Integer> worn = wornItems();
+		Map<Integer, Integer> unequipped = removedItems(wornLastTick, worn);
+		wornLastTick = worn;
+
+		for (PendingLoot loot : pendingEventLoot)
+		{
+			handleLoot(withoutUnequipped(loot.getItems(), unequipped), loot.getSource(), loot::getKc);
+		}
+		pendingEventLoot.clear();
+	}
+
+	private Map<Integer, Integer> wornItems()
+	{
+		ItemContainer worn = client.getItemContainer(InventoryID.WORN);
+		if (worn == null)
+		{
+			return Collections.emptyMap();
+		}
+
+		Map<Integer, Integer> quantities = new HashMap<>();
+		for (Item item : worn.getItems())
+		{
+			if (item.getQuantity() > 0)
+			{
+				quantities.merge(item.getId(), item.getQuantity(), Integer::sum);
+			}
+		}
+		return quantities;
+	}
+
+	static Map<Integer, Integer> removedItems(Map<Integer, Integer> before, Map<Integer, Integer> after)
+	{
+		Map<Integer, Integer> removed = new HashMap<>();
+		before.forEach((id, quantity) ->
+		{
+			int gone = quantity - after.getOrDefault(id, 0);
+			if (gone > 0)
+			{
+				removed.put(id, gone);
+			}
+		});
+		return removed;
+	}
+
+	// Takes the count and not the whole stack, you can take off one tome and win another
+	static List<ItemStack> withoutUnequipped(Collection<ItemStack> items, Map<Integer, Integer> unequipped)
+	{
+		List<ItemStack> kept = new ArrayList<>(items.size());
+		for (ItemStack item : items)
+		{
+			int taken = Math.min(item.getQuantity(), unequipped.getOrDefault(item.getId(), 0));
+			unequipped.merge(item.getId(), -taken, Integer::sum);
+			if (item.getQuantity() > taken)
+			{
+				kept.add(new ItemStack(item.getId(), item.getQuantity() - taken));
+			}
+		}
+		return kept;
 	}
 
 	private boolean inSafeArea()
@@ -141,6 +228,11 @@ public class LootNotifier extends BaseNotifier
 	}
 
 	private void handleLoot(Collection<ItemStack> items, String source, LootRecordType type)
+	{
+		handleLoot(items, source, () -> killCountService.getKillCount(type, source));
+	}
+
+	private void handleLoot(Collection<ItemStack> items, String source, Supplier<Integer> kc)
 	{
 		Map<Integer, Integer> quantities = new LinkedHashMap<>();
 		for (ItemStack item : items)
@@ -161,7 +253,8 @@ public class LootNotifier extends BaseNotifier
 		send(Notification.builder()
 			.type(NotificationType.LOOT)
 			.text(config.lootMessage())
-			.placeholders(placeholders(qualifying, stacks, sanitize(source), killCountService.getKillCount(type, source)))
+			.placeholders(placeholders(qualifying, stacks, sanitize(source), kc.get()))
+			.itemNames(qualifying.stream().map(ItemStackFormatter.Stack::getName).collect(Collectors.toList()))
 			.screenshot(config.sendLootScreenshot())
 			.build());
 	}
@@ -214,6 +307,14 @@ public class LootNotifier extends BaseNotifier
 		placeholders.put("source", source);
 		placeholders.put("kc", kc == null ? "" : " (KC " + QuantityFormatter.formatNumber(kc) + ")");
 		return placeholders;
+	}
+
+	@Value
+	private static class PendingLoot
+	{
+		Collection<ItemStack> items;
+		String source;
+		Integer kc;
 	}
 
 	@Value

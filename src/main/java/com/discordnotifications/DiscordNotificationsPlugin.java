@@ -213,5 +213,6 @@ public class DiscordNotificationsPlugin extends Plugin
 		deathNotifier.reset();
 		petNotifier.reset();
 		collectionLogNotifier.reset();
+		lootNotifier.reset();
 	}
 }

@@ -25,6 +25,7 @@ class NotificationQueue
 	private static final long SWEEP_INTERVAL_MS = 500;
 	// PetNotifier can hold a pet for 6 game ticks, the clog line has to still be here when it lands
 	private static final long COLLECTION_LOG_WINDOW_MS = 4_500;
+	private static final String NEW_ENTRY_NOTE = " (new collection log entry!)";
 
 	interface Poster
 	{
@@ -129,10 +130,30 @@ class NotificationQueue
 
 	static String join(List<Notification> notifications)
 	{
-		return mergePet(notifications).stream()
+		return mergePet(mergeLoot(notifications)).stream()
 			.sorted(Comparator.comparing(Notification::getType))
 			.map(Notification::getText)
 			.collect(Collectors.joining("\n"));
+	}
+
+	// Runs before mergePet so a pet with no name can't take the name of a real drop
+	private static List<Notification> mergeLoot(List<Notification> notifications)
+	{
+		List<Notification> merged = new ArrayList<>(notifications);
+		for (Notification loot : notifications)
+		{
+			if (loot.getType() == NotificationType.LOOT
+				&& merged.removeIf(n -> n.getType() == NotificationType.COLLECTION_LOG && listsItem(loot, n.getPlaceholders().get("entry"))))
+			{
+				merged.set(merged.indexOf(loot), loot.toBuilder().text(loot.getText() + NEW_ENTRY_NOTE).build());
+			}
+		}
+		return merged;
+	}
+
+	private static boolean listsItem(Notification loot, String item)
+	{
+		return loot.getItemNames().stream().anyMatch(name -> name.equalsIgnoreCase(item));
 	}
 
 	private static List<Notification> mergePet(List<Notification> notifications)

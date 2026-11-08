@@ -6,7 +6,11 @@ import com.discordnotifications.Template;
 import com.discordnotifications.WildcardList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import net.runelite.client.game.ItemStack;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -28,6 +32,38 @@ public class LootNotifierTest
 	private static List<Stack> chestQualifying(LootValueBasis basis, long minValue, String denylist)
 	{
 		return LootNotifier.qualifying(CHEST, "Loot Chest", minValue, basis, WildcardList.parse(""), WildcardList.parse(denylist));
+	}
+
+	private static Map<Integer, Integer> kept(Map<Integer, Integer> unequipped, ItemStack... items)
+	{
+		return LootNotifier.withoutUnequipped(Arrays.asList(items), new HashMap<>(unequipped)).stream()
+			.collect(Collectors.toMap(ItemStack::getId, ItemStack::getQuantity));
+	}
+
+	@Test
+	public void removedItemsAreWhatLeftTheContainer()
+	{
+		assertEquals(Map.of(1, 1, 2, 30), LootNotifier.removedItems(Map.of(1, 1, 2, 100, 3, 1), Map.of(2, 70, 3, 1, 4, 1)));
+	}
+
+	@Test
+	public void unequippedGearIsNotLoot()
+	{
+		assertEquals(Map.of(2, 5), kept(Map.of(1, 1), new ItemStack(1, 1), new ItemStack(2, 5)));
+	}
+
+	@Test
+	public void onlyTheUnequippedCountIsSubtracted()
+	{
+		assertEquals(Map.of(1, 1), kept(Map.of(1, 1), new ItemStack(1, 2)));
+	}
+
+	@Test
+	public void anUnequippedItemIsOnlySubtractedOnce()
+	{
+		Map<Integer, Integer> unequipped = new HashMap<>(Map.of(1, 1));
+		assertTrue(LootNotifier.withoutUnequipped(List.of(new ItemStack(1, 1)), unequipped).isEmpty());
+		assertEquals(1, LootNotifier.withoutUnequipped(List.of(new ItemStack(1, 1)), unequipped).size());
 	}
 
 	@Test
