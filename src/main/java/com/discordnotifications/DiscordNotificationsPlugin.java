@@ -84,6 +84,8 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Inject
 	private GameSettingsWarning gameSettingsWarning;
 
+	private GameState gameState;
+
 	@Provides
 	DiscordNotificationsConfig provideConfig(ConfigManager configManager)
 	{
@@ -93,6 +95,7 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
+		gameState = null;
 		resetState();
 		notificationQueue.start();
 	}
@@ -112,8 +115,16 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged gameStateChanged)
 	{
+		GameState newState = gameStateChanged.getGameState();
+		// LOADING fires on every region change, then we land back in the same state
+		if (newState == GameState.LOADING || newState == gameState)
+		{
+			return;
+		}
+		gameState = newState;
+
 		diaryNotifier.onGameStateChanged(gameStateChanged);
-		if (gameStateChanged.getGameState().equals(GameState.LOGIN_SCREEN))
+		if (newState == GameState.LOGIN_SCREEN)
 		{
 			resetState();
 		}
