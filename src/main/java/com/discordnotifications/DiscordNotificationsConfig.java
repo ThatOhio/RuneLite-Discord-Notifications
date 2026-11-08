@@ -257,6 +257,15 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean includeCollectionLogs() { return false; }
 
 	@ConfigItem(
+		keyName = "collectionLogDenylist",
+		name = "Never notify for these items",
+		description = "Items that shouldn't send a message. Put each on its own line, or separate them with commas. Use * as a wildcard, like Clue scroll*",
+		section = collectionLogsConfig,
+		position = 2
+	)
+	default String collectionLogDenylist() { return ""; }
+
+	@ConfigItem(
 		keyName = "sendCollectionLogScreenshot",
 		name = "Include collection log screenshots",
 		description = "Include a screenshot with the Discord notification when you fill a new collection log slot",
@@ -422,11 +431,11 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "collectionLogMessage",
 		name = "Collection log Message",
-		description = "Sent when you fill a collection log slot. Use $name and $entry.",
+		description = "Sent when you fill a collection log slot. Use $name, $entry, $completed, $total and $progress (like: (123/1,692)). Put $progress straight after another word, it adds its own space. The counts are blank if the game hasn't sent them yet, opening the Character Summary tab fixes that.",
 		section = messageTemplatesConfig,
 		position = 6
 	)
-	default String collectionLogMessage() { return "$name has just completed a collection log: $entry"; }
+	default String collectionLogMessage() { return "$name has just completed a collection log: $entry$progress"; }
 
 	@ConfigItem(
 		keyName = "combatAchievementsMessage",

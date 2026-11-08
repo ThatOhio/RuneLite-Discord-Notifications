@@ -96,6 +96,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		questNotifier.onGameTick();
 		levelNotifier.onGameTick();
 		petNotifier.onGameTick();
+		collectionLogNotifier.onGameTick();
 	}
 
 	@Subscribe
@@ -125,7 +126,9 @@ public class DiscordNotificationsPlugin extends Plugin
 			return;
 		}
 
-		petNotifier.onGameMessage(sanitize(event.getMessage()));
+		String message = sanitize(event.getMessage());
+		petNotifier.onGameMessage(message);
+		collectionLogNotifier.onGameMessage(message);
 	}
 
 	@Subscribe
