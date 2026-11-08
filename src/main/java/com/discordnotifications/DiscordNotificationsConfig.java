@@ -26,6 +26,17 @@ public interface DiscordNotificationsConfig extends Config {
 	)
 	String webhook();
 
+	@ConfigItem(
+			keyName = "chatPrivacy",
+			name = "Hide chat in screenshots",
+			description = "What to hide when taking a screenshot. Hide split PMs only does something if you have split private chat turned on in game. The chat might flicker for a frame while it's hidden.",
+			section = webhookConfig,
+			position = 1
+	)
+	default ChatPrivacy chatPrivacy() {
+		return ChatPrivacy.HIDE_SPLIT_PM;
+	}
+
 	// Levelling config section
 	@ConfigSection(
 			name = "Levelling",

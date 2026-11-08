@@ -2,6 +2,9 @@ package com.discordnotifications;
 
 import com.google.common.base.Strings;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Client;
+import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.ui.DrawManager;
 import okhttp3.Call;
@@ -21,6 +24,7 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -58,6 +62,9 @@ public class DiscordWebhookService
 
 	@Inject
 	private ClientThread clientThread;
+
+	@Inject
+	private Client client;
 
 	private NotificationQueue queue;
 
@@ -99,6 +106,8 @@ public class DiscordWebhookService
 	private void captureScreenshot(Consumer<byte[]> onImage)
 	{
 		AtomicBoolean delivered = new AtomicBoolean();
+		// Client thread only
+		List<Integer> hidden = new ArrayList<>();
 
 		// DrawManager drops its listeners without a word when it can't draw (minimised, loading screen)
 		executor.schedule(() ->
@@ -106,19 +115,66 @@ public class DiscordWebhookService
 			if (delivered.compareAndSet(false, true))
 			{
 				log.debug("No frame within {}ms, sending without a screenshot", CAPTURE_TIMEOUT_MS);
+				clientThread.invoke(() -> unhideWidgets(hidden));
 				onImage.accept(null);
 			}
 		}, CAPTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
 		// Tick end so the popup or chat line that caused this is on screen
-		clientThread.invokeAtTickEnd(() -> drawManager.requestNextFrameListener(image ->
+		clientThread.invokeAtTickEnd(() ->
 		{
-			if (!delivered.compareAndSet(false, true))
+			// After the timeout nothing would unhide these
+			if (delivered.get())
 			{
 				return;
 			}
-			executor.execute(() -> onImage.accept(encodePng(image)));
-		}));
+
+			hideChat(hidden);
+			drawManager.requestNextFrameListener(image ->
+			{
+				if (!delivered.compareAndSet(false, true))
+				{
+					return;
+				}
+				clientThread.invoke(() -> unhideWidgets(hidden));
+				executor.execute(() -> onImage.accept(encodePng(image)));
+			});
+		});
+	}
+
+	private void hideChat(List<Integer> hidden)
+	{
+		ChatPrivacy privacy = config.chatPrivacy();
+		if (privacy != ChatPrivacy.SHOW_ALL)
+		{
+			hideWidget(InterfaceID.PmChat.CONTAINER, hidden);
+		}
+		if (privacy == ChatPrivacy.HIDE_ALL)
+		{
+			hideWidget(InterfaceID.Chatbox.CHATAREA, hidden);
+		}
+	}
+
+	private void hideWidget(int component, List<Integer> hidden)
+	{
+		Widget widget = client.getWidget(component);
+		if (widget != null && !widget.isHidden())
+		{
+			widget.setHidden(true);
+			hidden.add(component);
+		}
+	}
+
+	private void unhideWidgets(List<Integer> hidden)
+	{
+		for (int component : hidden)
+		{
+			Widget widget = client.getWidget(component);
+			if (widget != null)
+			{
+				widget.setHidden(false);
+			}
+		}
 	}
 
 	private static byte[] encodePng(Image image)
