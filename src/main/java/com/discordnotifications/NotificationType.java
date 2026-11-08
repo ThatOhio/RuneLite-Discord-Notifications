@@ -1,12 +1,13 @@
 package com.discordnotifications;
 
+// Declaration order is the order lines appear in a batched post
 public enum NotificationType
 {
-	LEVEL,
-	QUEST,
-	CLUE,
-	DEATH,
 	PET,
 	COLLECTION_LOG,
-	COMBAT_ACHIEVEMENT
+	COMBAT_ACHIEVEMENT,
+	CLUE,
+	QUEST,
+	LEVEL,
+	DEATH
 }

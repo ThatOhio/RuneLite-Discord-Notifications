@@ -15,6 +15,9 @@ public class Notification
 	String text;
 	boolean screenshot;
 
+	// Set on a pet with no name yet: the template to use if the queue finds one
+	String namedText;
+
 	@Builder.Default
 	Map<String, String> placeholders = Collections.emptyMap();
 

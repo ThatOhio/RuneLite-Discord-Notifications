@@ -3,15 +3,19 @@ package com.discordnotifications.notifiers;
 import com.discordnotifications.DiscordNotificationsConfig;
 import com.discordnotifications.DiscordWebhookService;
 import com.discordnotifications.Notification;
+import com.discordnotifications.SeasonalWorlds;
 import com.discordnotifications.Template;
+import com.discordnotifications.WorldUtils;
 import com.google.common.base.Strings;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
+import net.runelite.api.WorldType;
 
 import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -46,11 +50,22 @@ public abstract class BaseNotifier
 			return;
 		}
 
+		Set<WorldType> worldTypes = client.getWorldType();
+		String prefix = WorldUtils.gameModePrefix(worldTypes);
+		if (WorldUtils.isIgnoredWorld(worldTypes) || (!prefix.isEmpty() && config.seasonalWorlds() == SeasonalWorlds.IGNORE))
+		{
+			log.debug("Dropping notification, ignored world {}", worldTypes);
+			return;
+		}
+
 		Map<String, String> values = new HashMap<>(notification.getPlaceholders());
 		values.put("name", localName);
 
 		webhookService.send(notification.toBuilder()
-			.text(Template.render(notification.getText(), values))
+			.text(prefix + Template.render(notification.getText(), values))
+			// The queue renders this later, when it works out the pet's name
+			.namedText(notification.getNamedText() == null ? null : prefix + notification.getNamedText())
+			.placeholders(values)
 			.build());
 	}
 

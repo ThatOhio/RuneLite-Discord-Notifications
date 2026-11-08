@@ -26,6 +26,28 @@ public interface DiscordNotificationsConfig extends Config {
 	)
 	String webhook();
 
+	@ConfigItem(
+			keyName = "chatPrivacy",
+			name = "Hide chat in screenshots",
+			description = "What to hide when taking a screenshot. Hide split PMs only does something if you have split private chat turned on in game. The chat might flicker for a frame while it's hidden.",
+			section = webhookConfig,
+			position = 1
+	)
+	default ChatPrivacy chatPrivacy() {
+		return ChatPrivacy.HIDE_SPLIT_PM;
+	}
+
+	@ConfigItem(
+			keyName = "seasonalWorlds",
+			name = "Leagues and Deadman worlds",
+			description = "Notify puts [Leagues] or [DMM] at the start of each message. Ignore doesn't send anything from those worlds.",
+			section = webhookConfig,
+			position = 2
+	)
+	default SeasonalWorlds seasonalWorlds() {
+		return SeasonalWorlds.NOTIFY;
+	}
+
 	// Levelling config section
 	@ConfigSection(
 			name = "Levelling",
@@ -198,6 +220,15 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean includePets() { return false; }
 
 	@ConfigItem(
+			keyName = "notifyDuplicatePets",
+			name = "Notify duplicate pets",
+			description = "Also send a message when you would have got a pet you already have.",
+			section = petConfig,
+			position = 1
+	)
+	default boolean notifyDuplicatePets() { return true; }
+
+	@ConfigItem(
 			keyName = "sendPetScreenshot",
 			name = "Include Pet screenshots",
 			description = "Include a screenshot with the Discord notification when you receive a pet.",
@@ -265,6 +296,77 @@ public interface DiscordNotificationsConfig extends Config {
 	}
 
 	@ConfigSection(
+		name = "Webhook overrides",
+		description = "Send an event to its own channel instead of the main webhook. Leave one blank to use the main webhook. Put each URL on its own line if you want more than one.",
+		position = 999,
+		closedByDefault = true
+	)
+	String webhookOverridesConfig = "webhookOverridesConfig";
+
+	@ConfigItem(
+		keyName = "levelWebhook",
+		name = "Levels",
+		description = "Webhook URL(s) for level ups.",
+		section = webhookOverridesConfig,
+		position = 1
+	)
+	default String levelWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "questWebhook",
+		name = "Quests",
+		description = "Webhook URL(s) for quests.",
+		section = webhookOverridesConfig,
+		position = 2
+	)
+	default String questWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "deathWebhook",
+		name = "Deaths",
+		description = "Webhook URL(s) for deaths.",
+		section = webhookOverridesConfig,
+		position = 3
+	)
+	default String deathWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "clueWebhook",
+		name = "Clue scrolls",
+		description = "Webhook URL(s) for clue scrolls.",
+		section = webhookOverridesConfig,
+		position = 4
+	)
+	default String clueWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "petWebhook",
+		name = "Pets",
+		description = "Webhook URL(s) for pets.",
+		section = webhookOverridesConfig,
+		position = 5
+	)
+	default String petWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "collectionLogWebhook",
+		name = "Collection log",
+		description = "Webhook URL(s) for collection log slots.",
+		section = webhookOverridesConfig,
+		position = 6
+	)
+	default String collectionLogWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "combatAchievementWebhook",
+		name = "Combat achievements",
+		description = "Webhook URL(s) for combat achievements.",
+		section = webhookOverridesConfig,
+		position = 7
+	)
+	default String combatAchievementWebhook() { return ""; }
+
+	@ConfigSection(
 		name = "Advanced: message templates",
 		description = "Change the text of each message",
 		position = 1000,
@@ -273,7 +375,7 @@ public interface DiscordNotificationsConfig extends Config {
 	String messageTemplatesConfig = "messageTemplatesConfig";
 
 	@ConfigItem(
-		keyName = "levelMessage",
+		keyName = "levelTemplate",
 		name = "Level Message",
 		description = "Sent when you level up. Use $name, $skills (like Attack to 70 and Strength to 72) and $total. $skill and $level only give the first skill.",
 		section = messageTemplatesConfig,
@@ -309,13 +411,13 @@ public interface DiscordNotificationsConfig extends Config {
 	default String clueMessage() { return "$name has just completed a clue scroll!"; }
 
 	@ConfigItem(
-		keyName = "petMessage",
+		keyName = "petTemplate",
 		name = "Pet Message",
-		description = "Sent when you get a pet. Use $name.",
+		description = "Sent when you get a pet. Use $name, $pet, $kc (like: at 1,234 kills) and $duplicate. Put $kc and $duplicate straight after another word, they add their own space and are blank when unknown.",
 		section = messageTemplatesConfig,
 		position = 5
 	)
-	default String petMessage() { return "$name has just received a pet!"; }
+	default String petMessage() { return "$name just got a pet: $pet$kc$duplicate"; }
 
 	@ConfigItem(
 		keyName = "collectionLogMessage",
