@@ -110,7 +110,7 @@ public class ClueNotifier extends BaseNotifier
 			.build());
 	}
 
-	static CompletedClue parse(String message)
+	public static CompletedClue parse(String message)
 	{
 		Matcher matcher = CLUE_REGEX.matcher(message);
 		if (!matcher.find())
@@ -133,7 +133,7 @@ public class ClueNotifier extends BaseNotifier
 	}
 
 	@Value
-	static class CompletedClue
+	public static class CompletedClue
 	{
 		ClueTier tier;
 		int count;

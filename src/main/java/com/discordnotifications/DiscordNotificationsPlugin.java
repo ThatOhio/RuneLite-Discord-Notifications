@@ -22,8 +22,11 @@ import net.runelite.api.events.UsernameChanged;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.NpcLootReceived;
+import net.runelite.client.events.PlayerLootReceived;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.plugins.loottracker.LootReceived;
 
 import javax.inject.Inject;
 
@@ -52,6 +55,9 @@ public class DiscordNotificationsPlugin extends Plugin
 
 	@Inject
 	private CombatAchievementNotifier combatAchievementNotifier;
+
+	@Inject
+	private KillCountService killCountService;
 
 	@Inject
 	private NotificationQueue notificationQueue;
@@ -127,6 +133,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		}
 
 		String message = sanitize(event.getMessage());
+		killCountService.onGameMessage(message);
 		petNotifier.onGameMessage(message);
 		collectionLogNotifier.onGameMessage(message);
 		combatAchievementNotifier.onGameMessage(message);
@@ -149,8 +156,28 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Subscribe
 	public void onWidgetLoaded(WidgetLoaded event)
 	{
+		killCountService.onWidgetLoaded(event);
 		questNotifier.onWidgetLoaded(event);
 		clueNotifier.onWidgetLoaded(event);
+	}
+
+	// Before the loot tracker, so its saved kills don't already include this one
+	@Subscribe(priority = 1)
+	public void onNpcLootReceived(NpcLootReceived event)
+	{
+		killCountService.onNpcLootReceived(event);
+	}
+
+	@Subscribe
+	public void onPlayerLootReceived(PlayerLootReceived event)
+	{
+		killCountService.onPlayerLootReceived(event);
+	}
+
+	@Subscribe
+	public void onLootReceived(LootReceived event)
+	{
+		killCountService.onLootReceived(event);
 	}
 
 	@Subscribe
@@ -163,6 +190,7 @@ public class DiscordNotificationsPlugin extends Plugin
 
 	private void resetState()
 	{
+		killCountService.reset();
 		levelNotifier.reset();
 		clueNotifier.reset();
 		deathNotifier.reset();
