@@ -13,7 +13,8 @@ Discord has a more detailed guide here: https://support.discord.com/hc/en-us/art
 ![image](https://i.imgur.com/ACGx8eB.png)
 
 ## Notes
-- Collection log notifications need the new addition message turned on in your game settings, chat or popup both work. Combat task notifications work off the in-game popup, so that one needs to be on too (Settings > All Settings > Chat).
+- Collection log notifications need the new addition message turned on in your game settings, chat or popup both work (Settings > All Settings > Chat).
+- Combat task notifications come from the chat message, so the popup setting doesn't matter. If you have the repeat completion setting on for combat tasks you'll get a notification every time you redo one.
 - Screenshots are of the whole game window, chatbox included. If you don't want that posted to the channel, turn off the screenshot option for that event.
 - Keep your webhook URL to yourself, anyone with it can post to your channel.
 

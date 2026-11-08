@@ -129,6 +129,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		String message = sanitize(event.getMessage());
 		petNotifier.onGameMessage(message);
 		collectionLogNotifier.onGameMessage(message);
+		combatAchievementNotifier.onGameMessage(message);
 	}
 
 	@Subscribe
@@ -148,7 +149,6 @@ public class DiscordNotificationsPlugin extends Plugin
 	public void onScriptPreFired(ScriptPreFired scriptPreFired)
 	{
 		collectionLogNotifier.onScriptPreFired(scriptPreFired);
-		combatAchievementNotifier.onScriptPreFired(scriptPreFired);
 		petNotifier.onScriptPreFired(scriptPreFired);
 	}
 
@@ -159,6 +159,5 @@ public class DiscordNotificationsPlugin extends Plugin
 		clueNotifier.reset();
 		petNotifier.reset();
 		collectionLogNotifier.reset();
-		combatAchievementNotifier.reset();
 	}
 }

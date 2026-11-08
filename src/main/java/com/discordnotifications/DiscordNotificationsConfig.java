@@ -294,6 +294,15 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean includeCombatAchievements() { return false; }
 
 	@ConfigItem(
+		keyName = "minCombatAchievementTier",
+		name = "Minimum tier",
+		description = "Only tasks of this tier or higher will send a message.",
+		section = combatAchievementsConfig,
+		position = 2
+	)
+	default CombatAchievementTier minCombatAchievementTier() { return CombatAchievementTier.EASY; }
+
+	@ConfigItem(
 		keyName = "sendCombatAchievementScreenshot",
 		name = "Include combat achievements screenshots",
 		description = "Include a screenshot with the Discord notification when you complete a combat achievement",
@@ -440,9 +449,9 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "combatAchievementsMessage",
 		name = "Combat Achievement Message",
-		description = "Sent when you finish a combat task. Use $name and $achievement.",
+		description = "Sent when you finish a combat task. Use $name, $task, $tier, $points (what the task was worth), $totalPoints and $tierUnlocked (like: and unlocked the Hard tier). Put $tierUnlocked straight after another word, it adds its own space and is blank unless the task got you to a new tier.",
 		section = messageTemplatesConfig,
 		position = 7
 	)
-	default String combatAchievementsMessage() { return "$name has just completed a combat achievement: $achievement"; }
+	default String combatAchievementsMessage() { return "$name has just completed a combat achievement: $task ($tier)$tierUnlocked"; }
 }
