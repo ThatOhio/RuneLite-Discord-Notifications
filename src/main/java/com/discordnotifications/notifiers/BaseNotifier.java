@@ -63,4 +63,12 @@ public abstract class BaseNotifier
 			.replace(' ', ' ')
 			.trim();
 	}
+
+	// Popup body is "New item: <col=..>Item</col>" or "Task Completed: <col=..>Task</col>".
+	static String popupSubject(String bottomText)
+	{
+		String text = sanitize(bottomText);
+		int colon = text.indexOf(':');
+		return colon < 0 ? text : text.substring(colon + 1).trim();
+	}
 }
