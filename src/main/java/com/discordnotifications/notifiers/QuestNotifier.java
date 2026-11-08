@@ -6,8 +6,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.VarPlayerID;
+import net.runelite.api.gameval.VarbitID;
+import net.runelite.api.widgets.Widget;
+import net.runelite.client.callback.ClientThread;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,42 +35,71 @@ public class QuestNotifier extends BaseNotifier
 			"Waterfall"
 		);
 
-	private boolean shouldSendQuestMessage = false;
+	private static final ImmutableMap<String, String> QUEST_REPLACEMENTS =
+		ImmutableMap.of(
+			"Lumbridge Cook... again", "Another Cook's",
+			"Skrach 'Bone Crusher' Uglogwee", "Skrach Uglogwee"
+		);
 
-	@Override
-	public void reset()
-	{
-		shouldSendQuestMessage = false;
-	}
+	@Inject
+	private ClientThread clientThread;
 
 	public void onWidgetLoaded(WidgetLoaded event)
 	{
-		if (event.getGroupId() == InterfaceID.QUESTSCROLL) {
-			shouldSendQuestMessage = true;
+		if (event.getGroupId() != InterfaceID.QUESTSCROLL || !config.includeQuestComplete())
+		{
+			return;
+		}
+
+		Widget title = client.getWidget(InterfaceID.Questscroll.QUEST_TITLE);
+		if (title != null)
+		{
+			String text = sanitize(title.getText());
+			// The quest varbits haven't updated yet when the scroll opens
+			clientThread.invokeLater(() -> sendQuestMessage(text));
 		}
 	}
 
-	public void onGameTick()
+	private void sendQuestMessage(String text)
 	{
-		if (shouldSendQuestMessage
-				&& config.includeQuestComplete()
-				&& client.getWidget(InterfaceID.Questscroll.QUEST_TITLE) != null
-		) {
-			shouldSendQuestMessage = false;
-			String text = sanitize(client.getWidget(InterfaceID.Questscroll.QUEST_TITLE).getText());
-			String questName = parseQuestCompletedWidget(text);
-			sendQuestMessage(questName);
+		String questName = parseQuestCompletedWidget(text);
+		if (questName == null)
+		{
+			return;
 		}
-	}
 
-	private void sendQuestMessage(String questName)
-	{
 		send(Notification.builder()
 			.type(NotificationType.QUEST)
 			.text(config.questMessage())
-			.placeholders(ImmutableMap.of("quest", questName))
+			.placeholders(placeholders(
+				questName,
+				client.getVarbitValue(VarbitID.QUESTS_COMPLETED_COUNT),
+				client.getVarbitValue(VarbitID.QUESTS_TOTAL_COUNT),
+				client.getVarpValue(VarPlayerID.QP),
+				client.getVarbitValue(VarbitID.QP_MAX)))
 			.screenshot(config.sendQuestingScreenshot())
 			.build());
+	}
+
+	static Map<String, String> placeholders(String quest, int completed, int totalQuests, int qp, int qpMax)
+	{
+		Map<String, String> placeholders = new HashMap<>();
+		placeholders.put("quest", quest);
+
+		if (completed > 0 && totalQuests > 0)
+		{
+			placeholders.put("completed", Integer.toString(completed));
+			placeholders.put("totalQuests", Integer.toString(totalQuests));
+		}
+
+		if (qp > 0 && qpMax > 0)
+		{
+			placeholders.put("qp", Integer.toString(qp));
+			placeholders.put("qpMax", Integer.toString(qpMax));
+			placeholders.put("progress", " (" + qp + "/" + qpMax + " QP)");
+		}
+
+		return placeholders;
 	}
 
 	static String parseQuestCompletedWidget(final String text)
@@ -80,11 +116,12 @@ public class QuestNotifier extends BaseNotifier
 		}
 
 		String quest = questMatchFinal.group("quest");
+		quest = QUEST_REPLACEMENTS.getOrDefault(quest, quest);
 		String verb = questMatchFinal.group("verb") != null ? questMatchFinal.group("verb") : "";
 
 		if (verb.contains("kind of"))
 		{
-			quest += " partial completion";
+			return null;
 		}
 		else if (verb.contains("completely"))
 		{

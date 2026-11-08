@@ -93,7 +93,6 @@ public class DiscordNotificationsPlugin extends Plugin
 	public void onGameTick(GameTick event)
 	{
 		clueNotifier.onGameTick();
-		questNotifier.onGameTick();
 		levelNotifier.onGameTick();
 		petNotifier.onGameTick();
 		collectionLogNotifier.onGameTick();
@@ -156,7 +155,6 @@ public class DiscordNotificationsPlugin extends Plugin
 	private void resetState()
 	{
 		levelNotifier.reset();
-		questNotifier.reset();
 		clueNotifier.reset();
 		petNotifier.reset();
 		collectionLogNotifier.reset();

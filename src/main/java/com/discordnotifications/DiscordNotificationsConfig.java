@@ -431,11 +431,11 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "questMessage",
 		name = "Quest Message",
-		description = "Sent when you finish a quest. Use $name and $quest.",
+		description = "Sent when you finish a quest. Use $name, $quest, $qp, $qpMax, $completed, $totalQuests and $progress (like: (44/293 QP)). The numbers are blank if the game hasn't sent them.",
 		section = messageTemplatesConfig,
 		position = 2
 	)
-	default String questMessage() { return "$name has just completed: $quest"; }
+	default String questMessage() { return "$name has just completed: $quest$progress"; }
 
 	@ConfigItem(
 		keyName = "deathMessage",
