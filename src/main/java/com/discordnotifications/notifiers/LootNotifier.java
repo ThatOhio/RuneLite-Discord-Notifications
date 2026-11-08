@@ -107,7 +107,7 @@ public class LootNotifier extends BaseNotifier
 	public void onServerNpcLoot(ServerNpcLoot event)
 	{
 		NPCComposition npc = event.getComposition();
-		if (config.includeLoot() && KillCountService.usesServerLoot(npc.getId(), npc.getName()))
+		if (npc != null && config.includeLoot() && KillCountService.usesServerLoot(npc.getId(), npc.getName()))
 		{
 			handleLoot(event.getItems(), npc.getName(), LootRecordType.NPC);
 		}
@@ -133,7 +133,7 @@ public class LootNotifier extends BaseNotifier
 
 	public void onLootReceived(LootReceived event)
 	{
-		if (!config.includeLoot() || isSkippedEvent(event.getName()))
+		if (!config.includeLoot() || event.getName() == null || isSkippedEvent(event.getName()))
 		{
 			return;
 		}
@@ -261,7 +261,7 @@ public class LootNotifier extends BaseNotifier
 
 	static boolean isSkippedEvent(String name)
 	{
-		return BA_GAMBLE.equals(name) || name.regionMatches(true, 0, CLUE_SCROLL, 0, CLUE_SCROLL.length());
+		return name != null && (BA_GAMBLE.equals(name) || name.regionMatches(true, 0, CLUE_SCROLL, 0, CLUE_SCROLL.length()));
 	}
 
 	static List<ItemStackFormatter.Stack> qualifying(List<ItemStackFormatter.Stack> stacks, String source, long minValue, LootValueBasis basis, WildcardList allowlist, WildcardList denylist)

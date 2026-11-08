@@ -214,7 +214,7 @@ public class KillCountService
 	public void onServerNpcLoot(ServerNpcLoot event)
 	{
 		NPCComposition npc = event.getComposition();
-		if (usesServerLoot(npc.getId(), npc.getName()))
+		if (npc != null && usesServerLoot(npc.getId(), npc.getName()))
 		{
 			recordLoot(LootRecordType.NPC, npc.getName(), event.getItems());
 		}
@@ -233,7 +233,7 @@ public class KillCountService
 	{
 		LootRecordType type = event.getType();
 		// Core's empty Maggot King posts, popping an egg after the kill isn't another kill
-		if (type == LootRecordType.UNKNOWN)
+		if (type == LootRecordType.UNKNOWN || event.getName() == null)
 		{
 			return;
 		}

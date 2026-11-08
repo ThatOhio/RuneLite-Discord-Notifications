@@ -205,5 +205,6 @@ public class LootNotifierTest
 		assertTrue(LootNotifier.isSkippedEvent("clue scroll (easy)"));
 		assertFalse(LootNotifier.isSkippedEvent("Chambers of Xeric"));
 		assertFalse(LootNotifier.isSkippedEvent("Clue"));
+		assertFalse(LootNotifier.isSkippedEvent(null));
 	}
 }
