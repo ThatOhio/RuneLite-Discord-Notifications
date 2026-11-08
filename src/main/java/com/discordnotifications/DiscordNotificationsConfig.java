@@ -191,6 +191,24 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean includeClues() { return false; }
 
 	@ConfigItem(
+			keyName = "minClueTier",
+			name = "Minimum tier",
+			description = "Only clues of this tier or higher will send a message.",
+			section = clueConfig,
+			position = 1
+	)
+	default ClueTier minClueTier() { return ClueTier.BEGINNER; }
+
+	@ConfigItem(
+			keyName = "minClueValue",
+			name = "Minimum value",
+			description = "Only clues with a total reward worth at least this much will send a message.",
+			section = clueConfig,
+			position = 2
+	)
+	default int minClueValue() { return 0; }
+
+	@ConfigItem(
 			keyName = "sendClueScreenshot",
 			name = "Include Clue screenshots",
 			description = "Include a screenshot with the Discord notification when you complete a clue.",
@@ -200,6 +218,15 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean sendClueScreenshot() {
 		return false;
 	}
+
+	@ConfigItem(
+			keyName = "clueScreenshotMinValue",
+			name = "Screenshot minimum value",
+			description = "Only include a screenshot when the total reward is worth at least this much.",
+			section = clueConfig,
+			position = 101
+	)
+	default int clueScreenshotMinValue() { return 0; }
 	// End clue config section
 
 	// Pet config section
@@ -422,11 +449,11 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "clueMessage",
 		name = "Clue Message",
-		description = "Sent when you finish a clue scroll. Use $name.",
+		description = "Sent when you finish a clue scroll. Use $name, $tier, $count (how many of that tier you've done), $items and $value.",
 		section = messageTemplatesConfig,
 		position = 4
 	)
-	default String clueMessage() { return "$name has just completed a clue scroll!"; }
+	default String clueMessage() { return "$name has just completed a clue scroll ($tier #$count) worth $value gp: $items"; }
 
 	@ConfigItem(
 		keyName = "petTemplate",

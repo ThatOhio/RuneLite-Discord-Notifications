@@ -130,6 +130,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		petNotifier.onGameMessage(message);
 		collectionLogNotifier.onGameMessage(message);
 		combatAchievementNotifier.onGameMessage(message);
+		clueNotifier.onGameMessage(message);
 	}
 
 	@Subscribe
