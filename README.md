@@ -1,5 +1,5 @@
 # Discord Notifications
-This is a plugin for RuneLite which sends a message to your discord channel when you level up, complete a quest or clue scroll, die, get a pet, get a valuable drop, add an item to your collection log, complete a combat task, finish an achievement diary, hit a boss kill count milestone or personal best, or unlock something on a Leagues world. Each one can be turned on or off separately, the message text can be edited, and you can optionally attach a screenshot as proof.
+This is a plugin for RuneLite which sends a message to your discord channel when you level up, complete a quest or clue scroll, die, get a pet, get a valuable drop, add an item to your collection log, complete a combat task, finish an achievement diary, hit a boss kill count milestone or personal best, or unlock something on a Leagues world. Each one can be turned on or off separately, the message text can be edited, and they come with a screenshot as proof unless you turn that off.
 
 In order to use this plugin you will need to create a webhook on your discord server. Below are instructions for how to do so:
 1. Open your Server Settings and head into the Integrations tab
@@ -12,12 +12,29 @@ Discord has a more detailed guide here: https://support.discord.com/hc/en-us/art
 
 ![image](https://i.imgur.com/ACGx8eB.png)
 
+## Defaults
+Nothing gets posted until you turn it on, so after adding your webhook open the sections you want and tick the send option. Screenshots are on for all of them. Once an event is on, this is what gets sent:
+
+| Event | What gets sent |
+| --- | --- |
+| Level ups | Every 10 levels and every level from 90 up, including past 99. Combat level is its own option and starts off |
+| Quests | Every quest |
+| Deaths | Skips safe deaths like minigames and your house |
+| Clue scrolls | Every tier |
+| Pets | Includes pets you already have |
+| Collection log | Every new slot |
+| Combat tasks | Every tier |
+| Loot | Stacks worth 100k or more |
+| Achievement diaries | Every difficulty |
+| Boss kills | Every 50 kills, first kills and personal bests |
+| Leagues | Areas, relics, masteries and tasks |
+
 ## Notes
 - Collection log notifications need the new addition message turned on in your game settings, chat or popup both work (Settings > All Settings > Chat).
 - Combat task notifications come from the chat message, so the popup setting doesn't matter. If you have the repeat completion setting on for combat tasks you'll get a notification every time you redo one.
 - Loot from raids, chests and pickpocketing comes through RuneLite's Loot Tracker plugin, so leave that turned on if you want those.
 - Boss kill notifications come from the kill count chat message, so Filter out boss kill-count with spam-filter needs to be off in your game settings.
-- Leagues notifications only get sent on a Leagues world, and they're off by default. The settings are near the bottom of the list.
+- Leagues notifications only get sent on a Leagues world. The settings are near the bottom of the list.
 - Screenshots are of the whole game window, chatbox included. If you don't want that posted to the channel, turn off the screenshot option for that event.
 - Keep your webhook URL to yourself, anyone with it can post to your channel.
 

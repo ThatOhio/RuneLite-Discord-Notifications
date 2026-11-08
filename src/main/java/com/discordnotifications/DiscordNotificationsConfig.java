@@ -12,8 +12,7 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigSection(
 			name = "Webhook Settings",
 			description = "The config for webhook content notifications",
-			position = 0,
-			closedByDefault = true
+			position = 0
 	)
 	String webhookConfig = "webhookConfig";
 
@@ -87,7 +86,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 3
 	)
 	default int levelInterval() {
-		return 1;
+		return 10;
 	}
 
 	@ConfigItem(
@@ -98,7 +97,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 4
 	)
 	default int levelIntervalOverride() {
-		return 0;
+		return 90;
 	}
 
 	@ConfigItem(
@@ -109,7 +108,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 5
 	)
 	default boolean notifyVirtualLevels() {
-		return false;
+		return true;
 	}
 
 	@ConfigItem(
@@ -120,7 +119,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 6
 	)
 	default boolean notifyCombatLevel() {
-		return true;
+		return false;
 	}
 
 	@ConfigItem(
@@ -131,7 +130,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 100
 	)
 	default boolean sendLevellingScreenshot() {
-		return false;
+		return true;
 	}
 
 	@ConfigItem(
@@ -173,7 +172,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 100
 	)
 	default boolean sendQuestingScreenshot() {
-		return false;
+		return true;
 	}
 	// End questing config section
 
@@ -220,7 +219,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 100
 	)
 	default boolean sendDeathScreenshot() {
-		return false;
+		return true;
 	}
 	// End death config section
 
@@ -267,7 +266,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 100
 	)
 	default boolean sendClueScreenshot() {
-		return false;
+		return true;
 	}
 
 	@ConfigItem(
@@ -314,7 +313,7 @@ public interface DiscordNotificationsConfig extends Config {
 			position = 100
 	)
 	default boolean sendPetScreenshot() {
-		return false;
+		return true;
 	}
 
 	@ConfigSection(
@@ -351,7 +350,7 @@ public interface DiscordNotificationsConfig extends Config {
 		position = 3
 	)
 	default boolean sendCollectionLogScreenshot() {
-		return false;
+		return true;
 	}
 
 	@ConfigSection(
@@ -388,7 +387,7 @@ public interface DiscordNotificationsConfig extends Config {
 		position = 100
 	)
 	default boolean sendCombatAchievementsScreenshot() {
-		return false;
+		return true;
 	}
 
 	@ConfigSection(
@@ -460,7 +459,7 @@ public interface DiscordNotificationsConfig extends Config {
 		section = lootConfig,
 		position = 100
 	)
-	default boolean sendLootScreenshot() { return false; }
+	default boolean sendLootScreenshot() { return true; }
 
 	@ConfigSection(
 		name = "Achievement Diaries",
@@ -495,7 +494,7 @@ public interface DiscordNotificationsConfig extends Config {
 		section = diaryConfig,
 		position = 100
 	)
-	default boolean sendDiaryScreenshot() { return false; }
+	default boolean sendDiaryScreenshot() { return true; }
 
 	@ConfigSection(
 		name = "Boss Kills",
@@ -548,11 +547,11 @@ public interface DiscordNotificationsConfig extends Config {
 		section = killCountConfig,
 		position = 100
 	)
-	default boolean sendKillCountScreenshot() { return false; }
+	default boolean sendKillCountScreenshot() { return true; }
 
 	@ConfigSection(
 		name = "Leagues (League worlds only)",
-		description = "Area, relic, task and combat mastery messages. These only get sent while you're playing on a Leagues world.",
+		description = "Area, relic, task and combat mastery messages, only sent on a Leagues world",
 		position = 998,
 		closedByDefault = true
 	)
@@ -619,11 +618,11 @@ public interface DiscordNotificationsConfig extends Config {
 		section = leaguesConfig,
 		position = 100
 	)
-	default boolean sendLeaguesScreenshot() { return false; }
+	default boolean sendLeaguesScreenshot() { return true; }
 
 	@ConfigSection(
 		name = "Webhook overrides",
-		description = "Send an event to its own channel instead of the main webhook. Leave one blank to use the main webhook. Put each URL on its own line if you want more than one.",
+		description = "Give an event its own channel, leave it blank to use the main webhook",
 		position = 999,
 		closedByDefault = true
 	)
