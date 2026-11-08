@@ -3,6 +3,7 @@ package com.discordnotifications;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -101,6 +102,51 @@ public class DiscordWebhookServiceTest
 		BufferedImage decoded = ImageIO.read(new ByteArrayInputStream(encoded));
 		assertTrue(decoded.getWidth() < 2000);
 		assertEquals(decoded.getWidth(), decoded.getHeight());
+	}
+
+	private static String repeat(char c, int count)
+	{
+		char[] chars = new char[count];
+		Arrays.fill(chars, c);
+		return new String(chars);
+	}
+
+	@Test
+	public void contentAtTheLimitIsLeftAlone()
+	{
+		String text = repeat('a', DiscordWebhookService.MAX_CONTENT_LENGTH);
+		assertEquals(text, DiscordWebhookService.truncate(text));
+	}
+
+	@Test
+	public void longContentIsCutAtASpace()
+	{
+		String head = repeat('a', 1990);
+		assertEquals(head + "\u2026", DiscordWebhookService.truncate(head + " " + repeat('b', 50)));
+	}
+
+	@Test
+	public void longContentIsCutAtALineBreak()
+	{
+		String head = "first event " + repeat('a', 1900);
+		assertEquals(head + "\u2026", DiscordWebhookService.truncate(head + "\n" + repeat('b', 200)));
+	}
+
+	@Test
+	public void spaceRightAtTheLimitStillFits()
+	{
+		String head = repeat('a', DiscordWebhookService.MAX_CONTENT_LENGTH - 1);
+		String result = DiscordWebhookService.truncate(head + " more");
+		assertEquals(head + "\u2026", result);
+		assertEquals(DiscordWebhookService.MAX_CONTENT_LENGTH, result.length());
+	}
+
+	@Test
+	public void contentWithNoBreakIsHardCut()
+	{
+		String result = DiscordWebhookService.truncate(repeat('a', 3000));
+		assertEquals(DiscordWebhookService.MAX_CONTENT_LENGTH, result.length());
+		assertTrue(result.endsWith("\u2026"));
 	}
 
 	@Test

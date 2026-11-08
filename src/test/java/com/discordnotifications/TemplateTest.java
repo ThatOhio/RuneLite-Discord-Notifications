@@ -39,7 +39,21 @@ public class TemplateTest
 	@Test
 	public void valuesAreLiteralAndNotScannedAgain()
 	{
-		assertEquals("$name C:\\x $1",
+		assertEquals("$name C:\\\\x $1",
 			Template.render("$a $b", ImmutableMap.of("a", "$name", "b", "C:\\x $1", "name", "Zezima")));
+	}
+
+	@Test
+	public void markdownInValuesIsEscaped()
+	{
+		assertEquals("\\* \\_ \\~ \\` \\| \\> \\\\",
+			Template.render("$a", ImmutableMap.of("a", "* _ ~ ` | > \\")));
+	}
+
+	@Test
+	public void markdownInTheTemplateIsKept()
+	{
+		assertEquals("**Dragon \\_ sword** > _99_",
+			Template.render("**$item** > _99_", ImmutableMap.of("item", "Dragon _ sword")));
 	}
 }

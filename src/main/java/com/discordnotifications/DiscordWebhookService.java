@@ -52,6 +52,8 @@ import static net.runelite.http.api.RuneLiteAPI.GSON;
 @Singleton
 public class DiscordWebhookService
 {
+	static final int MAX_CONTENT_LENGTH = 2_000;
+	private static final String ELLIPSIS = "\u2026";
 	private static final long CAPTURE_TIMEOUT_MS = 2_000;
 	static final int MAX_IMAGE_BYTES = 8_000_000;
 	private static final float JPEG_QUALITY = 0.85f;
@@ -280,10 +282,23 @@ public class DiscordWebhookService
 		return image != null && image.length >= 2 && image[0] == (byte) 0xFF && image[1] == (byte) 0xD8;
 	}
 
+	static String truncate(String text)
+	{
+		if (text.length() <= MAX_CONTENT_LENGTH)
+		{
+			return text;
+		}
+
+		// Newlines count too, a batched post has one event per line
+		int limit = MAX_CONTENT_LENGTH - ELLIPSIS.length();
+		int cut = Math.max(text.lastIndexOf(' ', limit), text.lastIndexOf('\n', limit));
+		return text.substring(0, cut > 0 ? cut : limit) + ELLIPSIS;
+	}
+
 	private void postToAll(List<String> urls, String text, byte[] image)
 	{
 		DiscordWebhookBody body = new DiscordWebhookBody();
-		body.setContent(text);
+		body.setContent(truncate(text));
 		String payload = GSON.toJson(body);
 
 		boolean jpeg = isJpeg(image);

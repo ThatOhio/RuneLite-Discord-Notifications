@@ -81,6 +81,13 @@ public class NotificationQueueTest
 	}
 
 	@Test
+	public void mergedPetNameIsEscapedOnce()
+	{
+		assertEquals("Bob got Pet\\_snake",
+			NotificationQueue.join(List.of(unnamedPet("$name got $pet"), clog("Pet_snake"))));
+	}
+
+	@Test
 	public void unnamedPetLeavesSeveralCollectionLogLinesAlone()
 	{
 		assertEquals("Bob just got a pet!\nclog Olmlet\nclog Twisted bow",
