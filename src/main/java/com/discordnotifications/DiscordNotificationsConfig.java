@@ -392,6 +392,50 @@ public interface DiscordNotificationsConfig extends Config {
 	}
 
 	@ConfigSection(
+		name = "Loot",
+		description = "The config for loot notifications",
+		position = 7,
+		closedByDefault = true
+	)
+	String lootConfig = "lootConfig";
+
+	@ConfigItem(
+		keyName = "includeLoot",
+		name = "Send Loot Notifications",
+		description = "Send messages when you get a valuable drop. Raids, chests and pickpocketing need the Loot Tracker plugin turned on.",
+		section = lootConfig,
+		position = 1
+	)
+	default boolean includeLoot() { return false; }
+
+	@ConfigItem(
+		keyName = "minLootValue",
+		name = "Minimum stack value",
+		description = "A drop is only sent if one stack in it is worth at least this much, and only those stacks get listed.",
+		section = lootConfig,
+		position = 2
+	)
+	default int minLootValue() { return 100000; }
+
+	@ConfigItem(
+		keyName = "includePlayerLoot",
+		name = "Include PvP loot",
+		description = "Also send loot from killing other players. Safe areas like Last Man Standing never send.",
+		section = lootConfig,
+		position = 3
+	)
+	default boolean includePlayerLoot() { return true; }
+
+	@ConfigItem(
+		keyName = "sendLootScreenshot",
+		name = "Include Loot screenshots",
+		description = "Include a screenshot with the Discord notification when you get a valuable drop.",
+		section = lootConfig,
+		position = 100
+	)
+	default boolean sendLootScreenshot() { return false; }
+
+	@ConfigSection(
 		name = "Webhook overrides",
 		description = "Send an event to its own channel instead of the main webhook. Leave one blank to use the main webhook. Put each URL on its own line if you want more than one.",
 		position = 999,
@@ -461,6 +505,15 @@ public interface DiscordNotificationsConfig extends Config {
 		position = 7
 	)
 	default String combatAchievementWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "lootWebhook",
+		name = "Loot",
+		description = "Webhook URL(s) for loot.",
+		section = webhookOverridesConfig,
+		position = 8
+	)
+	default String lootWebhook() { return ""; }
 
 	@ConfigSection(
 		name = "Advanced: message templates",
@@ -550,4 +603,13 @@ public interface DiscordNotificationsConfig extends Config {
 		position = 7
 	)
 	default String combatAchievementsMessage() { return "$name has just completed a combat achievement: $task ($tier)$tierUnlocked"; }
+
+	@ConfigItem(
+		keyName = "lootMessage",
+		name = "Loot Message",
+		description = "Sent when you get a valuable drop. Use $name, $items (only the stacks over your minimum), $value (the whole drop), $source and $kc (like: (KC 1,234)). Put $kc straight after another word, it adds its own space and is blank if the kill count isn't known.",
+		section = messageTemplatesConfig,
+		position = 8
+	)
+	default String lootMessage() { return "$name has just received $items from $source$kc, whole drop worth $value gp"; }
 }

@@ -2,14 +2,17 @@ package com.discordnotifications;
 
 import com.discordnotifications.notifiers.ClueNotifier;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import lombok.Getter;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
+import net.runelite.api.NPCComposition;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.NpcID;
 import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
@@ -17,6 +20,7 @@ import net.runelite.client.config.ConfigManager;
 import net.runelite.client.config.RuneLiteConfig;
 import net.runelite.client.events.NpcLootReceived;
 import net.runelite.client.events.PlayerLootReceived;
+import net.runelite.client.events.ServerNpcLoot;
 import net.runelite.client.game.ItemStack;
 import net.runelite.client.plugins.chatcommands.ChatCommandsPlugin;
 import net.runelite.client.plugins.loottracker.LootReceived;
@@ -56,10 +60,40 @@ public class KillCountService
 	private static final String TOA = "Tombs of Amascut";
 	private static final String TOB = "Theatre of Blood";
 	private static final String COX = "Chambers of Xeric";
-	private static final List<String> RAIDS = List.of(TOA, TOB, COX);
+	private static final String TFA = "Fractured Archive";
+	private static final List<String> RAIDS = List.of(TOA, TOB, COX, TFA);
 
 	// Core posts LootReceived for these instead of NpcLootReceived
-	private static final Set<String> LOOT_RECEIVED_NPCS = Set.of("The Whisperer", "Araxxor", "Branda the Fire Queen", "Eldric the Ice King", GAUNTLET_BOSS, CG_BOSS);
+	public static final Set<String> LOOT_RECEIVED_NPCS = Set.of("The Whisperer", "Araxxor", "Branda the Fire Queen", "Eldric the Ice King", GAUNTLET_BOSS, CG_BOSS);
+
+	// Their loot never lands where NpcLootReceived looks for it
+	private static final Set<Integer> SERVER_LOOT_NPC_IDS = ImmutableSet.of(
+		NpcID.YAMA,
+		NpcID.HESPORI,
+		NpcID.MAGGOT_KING,
+		NpcID.MAGGOT_KING_CORPSE,
+		NpcID.SAILING_BULL_SHARK_DEAD,
+		NpcID.SAILING_HAMMERHEAD_SHARK_DEAD,
+		NpcID.SAILING_TIGER_SHARK_DEAD,
+		NpcID.SAILING_GREAT_WHITE_SHARK_DEAD,
+		NpcID.SAILING_NARWHAL_DEAD,
+		NpcID.SAILING_ORCA_DEAD,
+		NpcID.SAILING_PYGMY_KRAKEN_DEAD,
+		NpcID.SAILING_SPINED_KRAKEN_DEAD,
+		NpcID.SAILING_ARMOURED_KRAKEN_DEAD,
+		NpcID.SAILING_VAMPYRE_KRAKEN_DEAD,
+		NpcID.SAILING_EAGLE_RAY_DEAD,
+		NpcID.SAILING_BUTTERFLY_RAY_DEAD,
+		NpcID.SAILING_STINGRAY_DEAD,
+		NpcID.SAILING_MANTA_RAY_DEAD,
+		NpcID.SAILING_OSPREY_DEAD,
+		NpcID.SAILING_ALBATROSS_DEAD,
+		NpcID.SAILING_FRIGATEBIRD_DEAD,
+		NpcID.SAILING_TERN_DEAD,
+		NpcID.SAILING_SEA_MOGRE_DEAD,
+		NpcID.SAILING_DOLPHIN_DEAD,
+		NpcID.SAILING_VEILED_KRAKEN_DEAD,
+		16305, 16306, 16307, 16308, 16309, 16310, 16311, 16312, 16313, 16314, 16315); // Mad Angel
 
 	// Keys are cleanBossName output
 	static final Map<String, Integer> BOSS_VARPS = ImmutableMap.<String, Integer>builder()
@@ -86,6 +120,7 @@ public class KillCountService
 		.put("dagannoth supreme", VarPlayerID.TOTAL_SUPREME_KILLS)
 		.put("deranged archaeologist", VarPlayerID.TOTAL_DERANGEDARCHAEOLOGIST_KILLS)
 		.put("duke sucellus", VarPlayerID.TOTAL_DUKE_SUCELLUS_KILLS)
+		.put("fractured archive", VarPlayerID.TOTAL_COMPLETED_THEFRACTUREDARCHIVE)
 		.put("gauntlet", VarPlayerID.TOTAL_COMPLETED_GAUNTLET)
 		.put("gemstone crab", VarPlayerID.TOTAL_GEMSTONE_CRAB_KILLS)
 		.put("general graardor", VarPlayerID.TOTAL_BANDOS_KILLS)
@@ -101,6 +136,8 @@ public class KillCountService
 		.put("kree'arra", VarPlayerID.TOTAL_ARMADYL_KILLS)
 		.put("leviathan", VarPlayerID.TOTAL_LEVIATHAN_KILLS)
 		.put("lunar chest", VarPlayerID.TOTAL_PMOON_CHESTS)
+		.put("mad angel", VarPlayerID.TOTAL_MAD_ANGEL_KILLS)
+		.put("maggot king", VarPlayerID.TOTAL_MAGGOT_KING_KILLS)
 		.put("mimic", VarPlayerID.TOTAL_MIMIC_KILLS)
 		.put("nex", VarPlayerID.TOTAL_NEX_KILLS)
 		.put("nightmare", VarPlayerID.TOTAL_NIGHTMARE_KILLS)
@@ -161,9 +198,18 @@ public class KillCountService
 	public void onNpcLootReceived(NpcLootReceived event)
 	{
 		String name = event.getNpc().getName();
-		if (name != null && !LOOT_RECEIVED_NPCS.contains(name))
+		if (usesNpcLootEvent(event.getNpc().getId(), name))
 		{
 			recordLoot(LootRecordType.NPC, name, event.getItems());
+		}
+	}
+
+	public void onServerNpcLoot(ServerNpcLoot event)
+	{
+		NPCComposition npc = event.getComposition();
+		if (usesServerLoot(npc.getId(), npc.getName()))
+		{
+			recordLoot(LootRecordType.NPC, npc.getName(), event.getItems());
 		}
 	}
 
@@ -179,6 +225,12 @@ public class KillCountService
 	public void onLootReceived(LootReceived event)
 	{
 		LootRecordType type = event.getType();
+		// Core's empty Maggot King posts, popping an egg after the kill isn't another kill
+		if (type == LootRecordType.UNKNOWN)
+		{
+			return;
+		}
+
 		// The loot tracker reposts every NPC and PvP kill, those are already counted above
 		if (type == LootRecordType.PLAYER || (type == LootRecordType.NPC && !LOOT_RECEIVED_NPCS.contains(event.getName())))
 		{
@@ -186,8 +238,7 @@ public class KillCountService
 		}
 
 		String source = getStandardizedSource(event);
-		boolean gauntlet = THE_GAUNTLET.equals(source) || CG_NAME.equals(source);
-		recordLoot(gauntlet ? LootRecordType.EVENT : type, source, event.getItems());
+		recordLoot(standardizedType(source, type), source, event.getItems());
 	}
 
 	public void onGameMessage(String message)
@@ -207,7 +258,7 @@ public class KillCountService
 
 		String boss = parsed.getBoss();
 		recordChatCount(boss, parsed.getCount());
-		if (boss.equals("Araxxor") || boss.endsWith("Gauntlet") || RAIDS.stream().anyMatch(boss::startsWith))
+		if (boss.equals("Araxxor") || boss.equals("Maggot King") || boss.endsWith("Gauntlet") || RAIDS.stream().anyMatch(boss::startsWith))
 		{
 			// These give their loot late or not through the NPC event, so pets and clog need the name now
 			lastDrop = new Drop(boss, LootRecordType.EVENT, Collections.emptyList(), Instant.now());
@@ -238,6 +289,26 @@ public class KillCountService
 		boolean sameRaid = lastDrop != null && event.getType() == LootRecordType.EVENT
 			&& RAIDS.stream().anyMatch(raid -> raid.equals(name) && lastDrop.getSource().startsWith(raid));
 		return sameRaid ? lastDrop.getSource() : name;
+	}
+
+	public static boolean usesServerLoot(int npcId, String name)
+	{
+		return SERVER_LOOT_NPC_IDS.contains(npcId) || (name != null && name.startsWith("Hallowed Sepulchre"));
+	}
+
+	public static boolean usesNpcLootEvent(int npcId, String name)
+	{
+		return name != null && !LOOT_RECEIVED_NPCS.contains(name) && !usesServerLoot(npcId, name);
+	}
+
+	public static LootRecordType standardizedType(String source, LootRecordType type)
+	{
+		return THE_GAUNTLET.equals(source) || CG_NAME.equals(source) ? LootRecordType.EVENT : type;
+	}
+
+	public boolean lootTrackerDisabled()
+	{
+		return pluginDisabled(LOOT_TRACKER_PLUGIN);
 	}
 
 	public Integer getKillCount(LootRecordType type, String source)

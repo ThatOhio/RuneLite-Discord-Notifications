@@ -1,10 +1,14 @@
 package com.discordnotifications;
 
 import com.discordnotifications.KillCountService.BossKc;
+import net.runelite.api.gameval.NpcID;
+import net.runelite.api.gameval.VarPlayerID;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class KillCountServiceTest
 {
@@ -32,6 +36,7 @@ public class KillCountServiceTest
 		assertEquals(new BossKc("Chambers of Xeric Challenge Mode", 2), KillCountService.parseBoss("Your completed Chambers of Xeric Challenge Mode count is: 2."));
 		assertEquals(new BossKc("Tombs of Amascut: Expert Mode", 7), KillCountService.parseBoss("Your completed Tombs of Amascut: Expert Mode count is: 7."));
 		assertEquals(new BossKc("Wintertodt", 300), KillCountService.parseBoss("Your subdued Wintertodt count is: 300."));
+		assertEquals(new BossKc("Fractured Archive", 12), KillCountService.parseBoss("Your completed Fractured Archive count is: 12."));
 	}
 
 	@Test
@@ -68,6 +73,27 @@ public class KillCountServiceTest
 		{
 			assertEquals(key, KillCountService.cleanBossName(key));
 		}
+	}
+
+	@Test
+	public void newBossesHaveAVarp()
+	{
+		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_COMPLETED_THEFRACTUREDARCHIVE), KillCountService.BOSS_VARPS.get(KillCountService.cleanBossName("Fractured Archive")));
+		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_MAGGOT_KING_KILLS), KillCountService.BOSS_VARPS.get(KillCountService.cleanBossName("Maggot King")));
+	}
+
+	@Test
+	public void eachNpcUsesOneLootEvent()
+	{
+		assertTrue(KillCountService.usesServerLoot(NpcID.MAGGOT_KING_CORPSE, "Maggot King"));
+		assertFalse(KillCountService.usesNpcLootEvent(NpcID.MAGGOT_KING_CORPSE, "Maggot King"));
+		assertTrue(KillCountService.usesServerLoot(NpcID.YAMA, "Yama"));
+		assertTrue(KillCountService.usesServerLoot(-1, "Hallowed Sepulchre (Floor 5)"));
+		assertFalse(KillCountService.usesServerLoot(NpcID.ARAXXOR, "Araxxor"));
+		assertFalse(KillCountService.usesNpcLootEvent(NpcID.ARAXXOR, "Araxxor"));
+		assertFalse(KillCountService.usesServerLoot(1, "Goblin"));
+		assertTrue(KillCountService.usesNpcLootEvent(1, "Goblin"));
+		assertFalse(KillCountService.usesNpcLootEvent(1, null));
 	}
 
 	@Test

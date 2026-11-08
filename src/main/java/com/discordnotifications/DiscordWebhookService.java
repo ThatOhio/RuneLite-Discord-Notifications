@@ -123,6 +123,8 @@ public class DiscordWebhookService
 				return config.petWebhook();
 			case COLLECTION_LOG:
 				return config.collectionLogWebhook();
+			case LOOT:
+				return config.lootWebhook();
 			case COMBAT_ACHIEVEMENT:
 				return config.combatAchievementWebhook();
 			case CLUE:
