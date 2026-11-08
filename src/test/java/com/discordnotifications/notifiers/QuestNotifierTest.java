@@ -48,6 +48,13 @@ public class QuestNotifierTest
 	}
 
 	@Test
+	public void fallsBackToTitleWhenNothingMatches()
+	{
+		assertEquals("Congratulations on finishing Some New Quest!", parse("Congratulations on finishing Some New Quest!"));
+		assertNull(parse(""));
+	}
+
+	@Test
 	public void rendersPlaceholders()
 	{
 		assertEquals("Cook's Assistant 22/156 44/293",

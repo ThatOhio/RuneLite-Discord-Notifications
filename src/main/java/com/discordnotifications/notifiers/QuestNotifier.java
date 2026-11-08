@@ -112,7 +112,7 @@ public class QuestNotifier extends BaseNotifier
 
 		if (!questMatchFinal.matches())
 		{
-			return "Unable to find quest name!";
+			return text.isEmpty() ? null : text;
 		}
 
 		String quest = questMatchFinal.group("quest");
