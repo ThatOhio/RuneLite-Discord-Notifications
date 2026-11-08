@@ -104,7 +104,7 @@ public class DiscordWebhookService
 
 	public void send(Notification notification)
 	{
-		List<String> urls = parseWebhookUrls(config.webhook()).stream()
+		List<String> urls = resolveWebhookUrls(overrideFor(notification.getType()), config.webhook()).stream()
 			.map(HttpUrl::toString)
 			.collect(Collectors.toList());
 		if (urls.isEmpty())
@@ -113,6 +113,36 @@ public class DiscordWebhookService
 		}
 
 		queue.add(urls, notification);
+	}
+
+	private String overrideFor(NotificationType type)
+	{
+		switch (type)
+		{
+			case PET:
+				return config.petWebhook();
+			case COLLECTION_LOG:
+				return config.collectionLogWebhook();
+			case COMBAT_ACHIEVEMENT:
+				return config.combatAchievementWebhook();
+			case CLUE:
+				return config.clueWebhook();
+			case QUEST:
+				return config.questWebhook();
+			case LEVEL:
+				return config.levelWebhook();
+			case DEATH:
+				return config.deathWebhook();
+			default:
+				return null;
+		}
+	}
+
+	// An override with no usable URL in it counts as blank, a typo shouldn't lose the message
+	static List<HttpUrl> resolveWebhookUrls(String override, String primary)
+	{
+		List<HttpUrl> urls = parseWebhookUrls(override);
+		return urls.isEmpty() ? parseWebhookUrls(primary) : urls;
 	}
 
 	static List<HttpUrl> parseWebhookUrls(String configured)

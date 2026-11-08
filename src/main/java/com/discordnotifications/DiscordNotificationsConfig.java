@@ -285,6 +285,77 @@ public interface DiscordNotificationsConfig extends Config {
 	}
 
 	@ConfigSection(
+		name = "Webhook overrides",
+		description = "Send an event to its own channel instead of the main webhook. Leave one blank to use the main webhook. Put each URL on its own line if you want more than one.",
+		position = 999,
+		closedByDefault = true
+	)
+	String webhookOverridesConfig = "webhookOverridesConfig";
+
+	@ConfigItem(
+		keyName = "levelWebhook",
+		name = "Levels",
+		description = "Webhook URL(s) for level ups.",
+		section = webhookOverridesConfig,
+		position = 1
+	)
+	default String levelWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "questWebhook",
+		name = "Quests",
+		description = "Webhook URL(s) for quests.",
+		section = webhookOverridesConfig,
+		position = 2
+	)
+	default String questWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "deathWebhook",
+		name = "Deaths",
+		description = "Webhook URL(s) for deaths.",
+		section = webhookOverridesConfig,
+		position = 3
+	)
+	default String deathWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "clueWebhook",
+		name = "Clue scrolls",
+		description = "Webhook URL(s) for clue scrolls.",
+		section = webhookOverridesConfig,
+		position = 4
+	)
+	default String clueWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "petWebhook",
+		name = "Pets",
+		description = "Webhook URL(s) for pets.",
+		section = webhookOverridesConfig,
+		position = 5
+	)
+	default String petWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "collectionLogWebhook",
+		name = "Collection log",
+		description = "Webhook URL(s) for collection log slots.",
+		section = webhookOverridesConfig,
+		position = 6
+	)
+	default String collectionLogWebhook() { return ""; }
+
+	@ConfigItem(
+		keyName = "combatAchievementWebhook",
+		name = "Combat achievements",
+		description = "Webhook URL(s) for combat achievements.",
+		section = webhookOverridesConfig,
+		position = 7
+	)
+	default String combatAchievementWebhook() { return ""; }
+
+	@ConfigSection(
 		name = "Advanced: message templates",
 		description = "Change the text of each message",
 		position = 1000,

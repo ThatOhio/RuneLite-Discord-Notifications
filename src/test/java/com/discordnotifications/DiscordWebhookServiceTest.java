@@ -48,6 +48,41 @@ public class DiscordWebhookServiceTest
 			parse("not a url\nhttps://discord.com/api/webhooks/1/abc\nftp://nope.example/x"));
 	}
 
+	private static List<String> resolve(String override, String primary)
+	{
+		return DiscordWebhookService.resolveWebhookUrls(override, primary).stream()
+			.map(HttpUrl::toString)
+			.collect(Collectors.toList());
+	}
+
+	@Test
+	public void overrideReplacesPrimary()
+	{
+		assertEquals(
+			List.of("https://a.example/deaths", "https://a.example/deaths2"),
+			resolve("https://a.example/deaths\nhttps://a.example/deaths2", "https://a.example/main"));
+	}
+
+	@Test
+	public void blankOverrideUsesPrimary()
+	{
+		assertEquals(List.of("https://a.example/main"), resolve(null, "https://a.example/main"));
+		assertEquals(List.of("https://a.example/main"), resolve("", "https://a.example/main"));
+		assertEquals(List.of("https://a.example/main"), resolve(" \n ", "https://a.example/main"));
+	}
+
+	@Test
+	public void overrideWithNoValidUrlUsesPrimary()
+	{
+		assertEquals(List.of("https://a.example/main"), resolve("not a url", "https://a.example/main"));
+	}
+
+	@Test
+	public void overrideWorksWithNoPrimary()
+	{
+		assertEquals(List.of("https://a.example/deaths"), resolve("https://a.example/deaths", null));
+	}
+
 	@Test
 	public void backoffDoublesWithoutRetryAfter()
 	{
