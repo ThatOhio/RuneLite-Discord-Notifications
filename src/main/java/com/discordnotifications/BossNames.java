@@ -93,6 +93,7 @@ public final class BossNames
 		.put("tombs of amascut", VarPlayerID.TOTAL_COMPLETED_TOMBSOFAMASCUT)
 		.put("tombs of amascut entry mode", VarPlayerID.TOTAL_COMPLETED_TOMBSOFAMASCUT_ENTRY)
 		.put("tombs of amascut expert mode", VarPlayerID.TOTAL_COMPLETED_TOMBSOFAMASCUT_EXPERT)
+		.put("tormented demon", VarPlayerID.WGS_TORMENTED_DEMON_KILLCOUNT)
 		.put("tzkal-zuk", VarPlayerID.TOTAL_ZUK_KILLS)
 		.put("tztok-jad", VarPlayerID.TOTAL_JAD_KILLS)
 		.put("vardorvis", VarPlayerID.TOTAL_VARDORVIS_KILLS)

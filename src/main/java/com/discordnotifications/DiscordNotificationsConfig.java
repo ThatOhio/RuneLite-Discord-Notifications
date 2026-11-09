@@ -1006,7 +1006,7 @@ public interface DiscordNotificationsConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "lootMessage",
+		keyName = "lootTemplate",
 		name = "Loot Message",
 		description = "Sent when you get a valuable drop. Use $name, $items (only the stacks that passed your loot filters), $value (the whole drop), $source and $kc (like: (KC 1,234)). Put $kc straight after another word, it adds its own space and is blank if the kill count isn't known.",
 		section = messageTemplatesConfig,
@@ -1014,7 +1014,7 @@ public interface DiscordNotificationsConfig extends Config
 	)
 	default String lootMessage()
 	{
-		return "$name has just received $items from $source$kc, whole drop worth $value gp";
+		return "$name has just received $items from $source$kc";
 	}
 
 	@ConfigItem(
