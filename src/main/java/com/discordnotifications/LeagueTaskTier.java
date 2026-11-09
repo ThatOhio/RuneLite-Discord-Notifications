@@ -1,17 +1,20 @@
 package com.discordnotifications;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public enum LeagueTaskTier
 {
-	EASY("Easy"),
-	MEDIUM("Medium"),
-	HARD("Hard"),
-	ELITE("Elite"),
-	MASTER("Master");
+	EASY("Easy", 10),
+	MEDIUM("Medium", 30),
+	HARD("Hard", 80),
+	ELITE("Elite", 200),
+	MASTER("Master", 400);
 
 	private final String displayName;
+	@Getter
+	private final int points;
 
 	public static LeagueTaskTier fromName(String name)
 	{

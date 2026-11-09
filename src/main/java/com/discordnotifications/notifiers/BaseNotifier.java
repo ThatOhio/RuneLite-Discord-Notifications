@@ -3,6 +3,7 @@ package com.discordnotifications.notifiers;
 import com.discordnotifications.DiscordNotificationsConfig;
 import com.discordnotifications.DiscordWebhookService;
 import com.discordnotifications.Notification;
+import com.discordnotifications.NotificationType;
 import com.discordnotifications.SeasonalWorlds;
 import com.discordnotifications.Template;
 import com.discordnotifications.WorldUtils;
@@ -19,8 +20,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Every notifier extends this. The webhook service is private on purpose: subclasses build message
- * text and call {@link #send}, and nothing else in the plugin can reach the network.
+ * The webhook service is private on purpose: subclasses build message text and call {@link #send},
+ * and nothing else in the plugin can reach the network.
  */
 @Slf4j
 public abstract class BaseNotifier
@@ -36,26 +37,47 @@ public abstract class BaseNotifier
 	@Inject
 	private DiscordWebhookService webhookService;
 
+	@Inject
+	private HeldNotifications heldNotifications;
+
 	public void reset()
 	{
+	}
+
+	protected final void send(NotificationType type, String template, Map<String, String> placeholders, boolean screenshot)
+	{
+		send(Notification.builder()
+			.type(type)
+			.text(template)
+			.placeholders(placeholders)
+			.screenshot(screenshot)
+			.build());
 	}
 
 	// The local player exists but has no name for the first ticks after login.
 	protected final void send(Notification notification)
 	{
+		if (!deliver(notification))
+		{
+			heldNotifications.add(() -> deliver(notification));
+		}
+	}
+
+	private boolean deliver(Notification notification)
+	{
 		String localName = playerName();
 		if (Strings.isNullOrEmpty(localName))
 		{
-			log.debug("Dropping notification, local player name not available yet");
-			return;
+			return false;
 		}
 
 		Set<WorldType> worldTypes = client.getWorldType();
-		String prefix = WorldUtils.gameModePrefix(worldTypes);
-		if (WorldUtils.isIgnoredWorld(worldTypes) || (!prefix.isEmpty() && config.seasonalWorlds() == SeasonalWorlds.IGNORE))
+		boolean gridMaster = WorldUtils.isGridMaster(client);
+		String prefix = WorldUtils.gameModePrefix(worldTypes, gridMaster);
+		if (WorldUtils.isIgnoredWorld(worldTypes, gridMaster) || (!prefix.isEmpty() && config.seasonalWorlds() == SeasonalWorlds.IGNORE))
 		{
 			log.debug("Dropping notification, ignored world {}", worldTypes);
-			return;
+			return true;
 		}
 
 		Map<String, String> values = new HashMap<>(notification.getPlaceholders());
@@ -67,6 +89,7 @@ public abstract class BaseNotifier
 			.namedText(notification.getNamedText() == null ? null : prefix + notification.getNamedText())
 			.placeholders(values)
 			.build());
+		return true;
 	}
 
 	protected String playerName()

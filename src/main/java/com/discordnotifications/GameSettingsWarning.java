@@ -3,6 +3,7 @@ package com.discordnotifications;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
+import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarbitID;
@@ -37,7 +38,7 @@ public class GameSettingsWarning
 	{
 		if (event.getGroupId() == InterfaceID.SETTINGS)
 		{
-			warn(config.includeCollectionLogs(), config.includePets(), config.includeLoot(), config.includeCombatAchievements(), config.includeKillCounts());
+			warn(config.includeCollectionLogs(), config.includePets(), readsKillCounts(), config.includeCombatAchievements());
 		}
 	}
 
@@ -49,11 +50,34 @@ public class GameSettingsWarning
 		}
 
 		String key = event.getKey();
+		boolean collectionLog = key.equals("includeCollectionLogs");
+		boolean pets = key.equals("includePets");
+		boolean killCountFilter = collectionLog || pets || key.equals("includeLoot") || key.equals("includeKillCounts");
+		boolean combatAchievements = key.equals("includeCombatAchievements");
 		// Config changes don't arrive on the client thread
-		clientThread.invokeLater(() -> warn(key.equals("includeCollectionLogs"), key.equals("includePets"), key.equals("includeLoot"), key.equals("includeCombatAchievements"), key.equals("includeKillCounts")));
+		clientThread.invokeLater(() -> warn(collectionLog, pets, killCountFilter, combatAchievements));
 	}
 
-	private void warn(boolean collectionLog, boolean pets, boolean loot, boolean combatAchievements, boolean killCounts)
+	public void onVarbitChanged(VarbitChanged event)
+	{
+		int id = event.getVarbitId();
+		boolean collectionLog = id == VarbitID.OPTION_COLLECTION_NEW_ITEM && config.includeCollectionLogs();
+		boolean pets = (id == VarbitID.OPTION_LOOTNOTIFICATION_ON || id == VarbitID.OPTION_LOOTNOTIFICATION_UNTRADEABLES) && config.includePets();
+		boolean killCountFilter = id == VarbitID.BOSS_KILLCOUNT_FILTERED && readsKillCounts();
+		boolean combatAchievements = id == VarbitID.CA_TASK_RECOMPLETION_NOTIFICATIONS && config.includeCombatAchievements();
+
+		if ((collectionLog || pets || killCountFilter || combatAchievements) && WorldUtils.isVisible(client, InterfaceID.Settings.UNIVERSE))
+		{
+			warn(collectionLog, pets, killCountFilter, combatAchievements);
+		}
+	}
+
+	private boolean readsKillCounts()
+	{
+		return config.includeLoot() || config.includePets() || config.includeCollectionLogs() || config.includeKillCounts();
+	}
+
+	private void warn(boolean collectionLog, boolean pets, boolean killCountFilter, boolean combatAchievements)
 	{
 		List<String> problems = new ArrayList<>();
 		if (collectionLog && client.getVarbitValue(VarbitID.OPTION_COLLECTION_NEW_ITEM) == 0)
@@ -64,7 +88,7 @@ public class GameSettingsWarning
 		{
 			problems.add("Turn on Loot drop notifications and Untradeable loot notifications or pets can post without a name.");
 		}
-		if ((loot || pets || collectionLog || killCounts) && client.getVarbitValue(VarbitID.BOSS_KILLCOUNT_FILTERED) > 0)
+		if (killCountFilter && client.getVarbitValue(VarbitID.BOSS_KILLCOUNT_FILTERED) > 0)
 		{
 			problems.add("Turn off Filter out boss kill-count with spam-filter or kill counts can be missing from posts.");
 		}

@@ -1,22 +1,202 @@
 package com.discordnotifications;
 
-import com.discordnotifications.KillCountService.BossKc;
 import com.discordnotifications.KillCountService.Drop;
-import net.runelite.api.gameval.NpcID;
+import net.runelite.api.Client;
+import net.runelite.api.NPC;
+import net.runelite.api.NPCComposition;
+import net.runelite.api.Player;
+import net.runelite.api.gameval.ItemID;
 import net.runelite.api.gameval.VarPlayerID;
+import net.runelite.client.callback.ClientThread;
+import net.runelite.client.config.ConfigManager;
+import net.runelite.client.events.NpcLootReceived;
+import net.runelite.client.events.PlayerLootReceived;
+import net.runelite.client.events.ServerNpcLoot;
+import net.runelite.client.game.ItemStack;
 import net.runelite.http.api.loottracker.LootRecordType;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class KillCountServiceTest
 {
+	private static final String GROUP = "discordnotifications";
+	private static final String ZULRAH_SAVED = "kc_zulrah";
+
+	@Mock
+	private Client client;
+
+	@Mock
+	private ClientThread clientThread;
+
+	@Mock
+	private ConfigManager configManager;
+
+	@Mock
+	private CoreKillCounts coreKillCounts;
+
+	@Spy
+	private NpcLootPairing npcLootPairing = new NpcLootPairing();
+
+	@InjectMocks
+	private KillCountService service;
+
+	private final Map<String, Integer> saved = new HashMap<>();
+
+	@Before
+	public void setUp()
+	{
+		lenient().doAnswer(call -> saved.get(call.<String>getArgument(1)))
+			.when(configManager).getRSProfileConfiguration(eq(GROUP), anyString(), eq(int.class));
+		lenient().doAnswer(call -> saved.put(call.getArgument(1), call.getArgument(2)))
+			.when(configManager).setRSProfileConfiguration(eq(GROUP), anyString(), any());
+	}
+
+	private void killZulrah()
+	{
+		NPC npc = mock(NPC.class);
+		when(npc.getName()).thenReturn("Zulrah");
+		service.onNpcLootReceived(new NpcLootReceived(npc, Collections.emptyList()));
+	}
+
+	private void chatZulrah(int kc)
+	{
+		service.onGameMessage("Your Zulrah kill count is: " + kc + ".");
+	}
+
+	private Integer zulrahKc()
+	{
+		return service.getKillCount(LootRecordType.NPC, "Zulrah");
+	}
+
+	@Test
+	public void noPriorCountStaysUnknown()
+	{
+		killZulrah();
+		killZulrah();
+		assertNull(zulrahKc());
+		assertTrue(saved.isEmpty());
+	}
+
+	@Test
+	public void lootBeforeChat()
+	{
+		saved.put(ZULRAH_SAVED, 100);
+		killZulrah();
+		assertEquals(Integer.valueOf(101), zulrahKc());
+
+		chatZulrah(101);
+		assertEquals(Integer.valueOf(101), zulrahKc());
+		assertEquals(Integer.valueOf(101), saved.get(ZULRAH_SAVED));
+	}
+
+	@Test
+	public void chatBeforeLoot()
+	{
+		saved.put(ZULRAH_SAVED, 100);
+		chatZulrah(101);
+		assertEquals(Integer.valueOf(101), zulrahKc());
+
+		killZulrah();
+		assertEquals(Integer.valueOf(101), zulrahKc());
+
+		chatZulrah(102);
+		killZulrah();
+		assertEquals(Integer.valueOf(102), zulrahKc());
+	}
+
+	@Test
+	public void firstChatLineStartsTheCount()
+	{
+		chatZulrah(5);
+		killZulrah();
+		assertEquals(Integer.valueOf(5), zulrahKc());
+		assertEquals(Integer.valueOf(5), saved.get(ZULRAH_SAVED));
+	}
+
+	@Test
+	public void varpAlreadyIncludingTheKillIsNotCountedTwice()
+	{
+		when(client.getVarpValue(VarPlayerID.TOTAL_SNAKEBOSS_KILLS)).thenReturn(101);
+		killZulrah();
+		assertEquals(Integer.valueOf(101), zulrahKc());
+
+		when(client.getVarpValue(VarPlayerID.TOTAL_SNAKEBOSS_KILLS)).thenReturn(102);
+		killZulrah();
+		assertEquals(Integer.valueOf(102), zulrahKc());
+	}
+
+	@Test
+	public void chatCommandsCountAlreadyIncludingTheKillIsNotCountedTwice()
+	{
+		when(coreKillCounts.chatCommandsKc("zulrah")).thenReturn(101);
+		killZulrah();
+		assertEquals(Integer.valueOf(101), zulrahKc());
+	}
+
+	@Test
+	public void lootTrackerCountNeverIncludesTheKillBeingHandled()
+	{
+		when(coreKillCounts.lootTrackerKills(LootRecordType.NPC, "Zulrah")).thenReturn(100);
+		killZulrah();
+		assertEquals(Integer.valueOf(101), zulrahKc());
+	}
+
+	@Test
+	public void gameCountsAreNotCopiedIntoAnEmptySave()
+	{
+		when(client.getVarpValue(VarPlayerID.TOTAL_SNAKEBOSS_KILLS)).thenReturn(101);
+		killZulrah();
+		assertTrue(saved.isEmpty());
+	}
+
+	@Test
+	public void playerKillsDontShareAnNpcCount()
+	{
+		saved.put(ZULRAH_SAVED, 100);
+		when(coreKillCounts.lootTrackerKills(LootRecordType.PLAYER, "Zulrah")).thenReturn(5);
+
+		Player player = mock(Player.class);
+		when(player.getName()).thenReturn("Zulrah");
+		service.onPlayerLootReceived(new PlayerLootReceived(player, Collections.emptyList()));
+
+		assertEquals(Integer.valueOf(6), service.getKillCount(LootRecordType.PLAYER, "Zulrah"));
+		assertEquals(Integer.valueOf(100), zulrahKc());
+		assertEquals(Integer.valueOf(100), saved.get(ZULRAH_SAVED));
+	}
+
+	@Test
+	public void resetForgetsCachedCounts()
+	{
+		when(client.getVarpValue(VarPlayerID.TOTAL_SNAKEBOSS_KILLS)).thenReturn(101);
+		killZulrah();
+
+		service.reset();
+		when(client.getVarpValue(VarPlayerID.TOTAL_SNAKEBOSS_KILLS)).thenReturn(0);
+		assertNull(zulrahKc());
+	}
+
 	@Test
 	public void dropsGoStaleAfterThirtySeconds()
 	{
@@ -25,6 +205,37 @@ public class KillCountServiceTest
 		assertTrue(KillCountService.isRecent(drop, time.plusSeconds(30)));
 		assertFalse(KillCountService.isRecent(drop, time.plusSeconds(31)));
 		assertFalse(KillCountService.isRecent(null, time));
+	}
+
+	@Test
+	public void petsOnlyTakeAFreshKill()
+	{
+		Instant time = Instant.parse("2026-01-01T00:00:00Z");
+		Drop drop = new Drop("Goblin", LootRecordType.NPC, Collections.emptyList(), time);
+		assertTrue(KillCountService.isRecentForPet(drop, time.plusSeconds(6)));
+		assertFalse(KillCountService.isRecentForPet(drop, time.plusSeconds(7)));
+		assertFalse(KillCountService.isRecentForPet(null, time));
+	}
+
+	@Test
+	public void petsKeepTheLongWindowForEventDrops()
+	{
+		Instant time = Instant.parse("2026-01-01T00:00:00Z");
+		Drop drop = new Drop("Chambers of Xeric", LootRecordType.EVENT, Collections.emptyList(), time);
+		assertTrue(KillCountService.isRecentForPet(drop, time.plusSeconds(30)));
+		assertFalse(KillCountService.isRecentForPet(drop, time.plusSeconds(31)));
+	}
+
+	@Test
+	public void onlyTheCoxKcLineWaitsForTheChest()
+	{
+		Instant time = Instant.parse("2026-01-01T00:00:00Z");
+		assertTrue(KillCountService.isAwaitingCoxChest(new Drop("Chambers of Xeric", LootRecordType.EVENT, Collections.emptyList(), time)));
+		assertTrue(KillCountService.isAwaitingCoxChest(new Drop("Chambers of Xeric Challenge Mode", LootRecordType.EVENT, Collections.emptyList(), time)));
+		assertFalse(KillCountService.isAwaitingCoxChest(new Drop("Chambers of Xeric", LootRecordType.EVENT, Collections.singletonList(new ItemStack(ItemID.COINS, 1)), time)));
+		assertFalse(KillCountService.isAwaitingCoxChest(new Drop("Theatre of Blood", LootRecordType.EVENT, Collections.emptyList(), time)));
+		assertFalse(KillCountService.isAwaitingCoxChest(new Drop("Goblin", LootRecordType.NPC, Collections.emptyList(), time)));
+		assertFalse(KillCountService.isAwaitingCoxChest(null));
 	}
 
 	@Test
@@ -41,91 +252,39 @@ public class KillCountServiceTest
 			Template.render("Got a fang$from$kc!", KillCountService.sourcePlaceholders("Zulrah", null)));
 	}
 
-	@Test
-	public void parsesKillCounts()
+	private boolean serverLoot(String name)
 	{
-		assertEquals(new BossKc("Zulrah", 1234), KillCountService.parseBoss("Your Zulrah kill count is: 1,234."));
-		assertEquals(new BossKc("Kree'arra", 5), KillCountService.parseBoss("Your Kree'arra kill count is: 5."));
-		assertEquals(new BossKc("herbiboar", 12), KillCountService.parseBoss("Your herbiboar harvest count is: 12."));
+		NPCComposition npc = mock(NPCComposition.class);
+		when(npc.getName()).thenReturn(name);
+		return service.onServerNpcLoot(new ServerNpcLoot(npc, Collections.emptyList()));
 	}
 
 	@Test
-	public void parsesChestsAndCompletions()
+	public void bothNpcEventsCountOneKill()
 	{
-		assertEquals(new BossKc("Barrows", 77), KillCountService.parseBoss("Your Barrows chest count is: 77."));
-		assertEquals(new BossKc("Lunar Chest", 40), KillCountService.parseBoss("Your Lunar Chest count is: 40."));
-		assertEquals(new BossKc("Gauntlet", 9), KillCountService.parseBoss("Your Gauntlet completion count is: 9."));
-		assertEquals(new BossKc("Corrupted Gauntlet", 3), KillCountService.parseBoss("Your Corrupted Gauntlet completion count is: 3."));
+		chatZulrah(10);
+		assertTrue(serverLoot("Zulrah"));
+		killZulrah();
+		assertEquals(Integer.valueOf(10), zulrahKc());
 	}
 
 	@Test
-	public void parsesRaidsAndWintertodt()
+	public void lootReceivedNpcsAreLeftToTheLootTracker()
 	{
-		assertEquals(new BossKc("Chambers of Xeric", 50), KillCountService.parseBoss("Your completed Chambers of Xeric count is: 50."));
-		assertEquals(new BossKc("Chambers of Xeric Challenge Mode", 2), KillCountService.parseBoss("Your completed Chambers of Xeric Challenge Mode count is: 2."));
-		assertEquals(new BossKc("Tombs of Amascut: Expert Mode", 7), KillCountService.parseBoss("Your completed Tombs of Amascut: Expert Mode count is: 7."));
-		assertEquals(new BossKc("Wintertodt", 300), KillCountService.parseBoss("Your subdued Wintertodt count is: 300."));
-		assertEquals(new BossKc("Fractured Archive", 12), KillCountService.parseBoss("Your completed Fractured Archive count is: 12."));
+		assertFalse(serverLoot("Araxxor"));
+		assertNull(service.getLastDrop());
 	}
 
 	@Test
-	public void ignoresOtherMessages()
+	public void pickpocketServerLootIsNotAKill()
 	{
-		assertNull(KillCountService.parseBoss("Your reward is: 5"));
-		assertNull(KillCountService.parseBoss("Your Treasure chest count is: 5."));
-		assertNull(KillCountService.parseBoss("Your completed Quest count is: 5."));
-		assertNull(KillCountService.parseBoss("Your Zulrah kill count is: 99999999999."));
-	}
+		when(client.getTickCount()).thenReturn(100);
+		service.notePickpocket("You pick the man's pocket.");
+		assertFalse(service.onServerNpcLoot(new ServerNpcLoot(mock(NPCComposition.class), Collections.emptyList())));
+		assertNull(service.getLastDrop());
 
-	@Test
-	public void cleansNamesToChatCommandKeys()
-	{
-		assertEquals("gauntlet", KillCountService.cleanBossName("The Gauntlet"));
-		assertEquals("gauntlet", KillCountService.cleanBossName("Gauntlet"));
-		assertEquals("gauntlet", KillCountService.cleanBossName("Crystalline Hunllef"));
-		assertEquals("corrupted gauntlet", KillCountService.cleanBossName("Corrupted Hunllef"));
-		assertEquals("corrupted gauntlet", KillCountService.cleanBossName("Corrupted Gauntlet"));
-		assertEquals("barrows chests", KillCountService.cleanBossName("Barrows"));
-		assertEquals("whisperer", KillCountService.cleanBossName("The Whisperer"));
-		assertEquals("nightmare", KillCountService.cleanBossName("The Nightmare"));
-		assertEquals("royal titans", KillCountService.cleanBossName("Eldric the Ice King"));
-		assertEquals("tempoross", KillCountService.cleanBossName("Reward pool (Tempoross)"));
-		assertEquals("wintertodt", KillCountService.cleanBossName("Supply crate (Wintertodt)"));
-		assertEquals("tombs of amascut expert mode", KillCountService.cleanBossName("Tombs of Amascut: Expert Mode"));
-		assertEquals("kree'arra", KillCountService.cleanBossName("Kree'arra"));
-	}
-
-	@Test
-	public void varpKeysAreCleanNames()
-	{
-		for (String key : KillCountService.BOSS_VARPS.keySet())
-		{
-			assertEquals(key, KillCountService.cleanBossName(key));
-		}
-	}
-
-	@Test
-	public void newBossesHaveAVarp()
-	{
-		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_COMPLETED_THEFRACTUREDARCHIVE), KillCountService.BOSS_VARPS.get(KillCountService.cleanBossName("Fractured Archive")));
-		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_MAGGOT_KING_KILLS), KillCountService.BOSS_VARPS.get(KillCountService.cleanBossName("Maggot King")));
-		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_COWBOSS_KILLS), KillCountService.BOSS_VARPS.get(KillCountService.cleanBossName("Brutus")));
-		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_COWBOSS_HARDMODE_KILLS), KillCountService.BOSS_VARPS.get(KillCountService.cleanBossName("Demonic Brutus")));
-		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_GRYPHON_BOSS_KILLS), KillCountService.BOSS_VARPS.get(KillCountService.cleanBossName("Shellbane gryphon")));
-	}
-
-	@Test
-	public void eachNpcUsesOneLootEvent()
-	{
-		assertTrue(KillCountService.usesServerLoot(NpcID.MAGGOT_KING_CORPSE, "Maggot King"));
-		assertFalse(KillCountService.usesNpcLootEvent(NpcID.MAGGOT_KING_CORPSE, "Maggot King"));
-		assertTrue(KillCountService.usesServerLoot(NpcID.YAMA, "Yama"));
-		assertTrue(KillCountService.usesServerLoot(-1, "Hallowed Sepulchre (Floor 5)"));
-		assertFalse(KillCountService.usesServerLoot(NpcID.ARAXXOR, "Araxxor"));
-		assertFalse(KillCountService.usesNpcLootEvent(NpcID.ARAXXOR, "Araxxor"));
-		assertFalse(KillCountService.usesServerLoot(1, "Goblin"));
-		assertTrue(KillCountService.usesNpcLootEvent(1, "Goblin"));
-		assertFalse(KillCountService.usesNpcLootEvent(1, null));
+		when(client.getTickCount()).thenReturn(101);
+		assertTrue(serverLoot("Man"));
 	}
 
 	@Test

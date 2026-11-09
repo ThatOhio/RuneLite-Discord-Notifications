@@ -1,6 +1,7 @@
 package com.discordnotifications;
 
 import com.google.common.base.Strings;
+import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.gameval.InterfaceID;
@@ -18,21 +19,10 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-import javax.imageio.IIOImage;
-import javax.imageio.ImageIO;
-import javax.imageio.ImageWriteParam;
-import javax.imageio.ImageWriter;
-import javax.imageio.stream.ImageOutputStream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.RenderingHints;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -42,12 +32,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import static net.runelite.http.api.RuneLiteAPI.GSON;
-
-/**
- * Owns all outbound traffic for the plugin. Everything else builds message text and hands it here,
- * so the Discord webhook call exists in exactly one place.
- */
 @Slf4j
 @Singleton
 public class DiscordWebhookService
@@ -55,8 +39,6 @@ public class DiscordWebhookService
 	static final int MAX_CONTENT_LENGTH = 2_000;
 	private static final String ELLIPSIS = "\u2026";
 	private static final long CAPTURE_TIMEOUT_MS = 2_000;
-	static final int MAX_IMAGE_BYTES = 8_000_000;
-	private static final float JPEG_QUALITY = 0.85f;
 	private static final MediaType PNG = MediaType.parse("image/png");
 	private static final MediaType JPEG = MediaType.parse("image/jpeg");
 	private static final int MAX_RETRIES = 3;
@@ -84,6 +66,9 @@ public class DiscordWebhookService
 	@Inject
 	private Client client;
 
+	@Inject
+	private Gson gson;
+
 	private NotificationQueue queue;
 
 	@Inject
@@ -104,9 +89,7 @@ public class DiscordWebhookService
 
 	public void send(Notification notification)
 	{
-		List<String> urls = resolveWebhookUrls(overrideFor(notification.getType()), config.webhook()).stream()
-			.map(HttpUrl::toString)
-			.collect(Collectors.toList());
+		List<String> urls = resolveWebhookUrls(overrideFor(notification.getType()), config.webhook());
 		if (urls.isEmpty())
 		{
 			return;
@@ -122,6 +105,7 @@ public class DiscordWebhookService
 			case PET:
 				return config.petWebhook();
 			case COLLECTION_LOG:
+			case COLLECTION_LOG_RANK:
 				return config.collectionLogWebhook();
 			case LOOT:
 				return config.lootWebhook();
@@ -147,24 +131,23 @@ public class DiscordWebhookService
 	}
 
 	// An override with no usable URL in it counts as blank, a typo shouldn't lose the message
-	static List<HttpUrl> resolveWebhookUrls(String override, String primary)
+	static List<String> resolveWebhookUrls(String override, String primary)
 	{
-		List<HttpUrl> urls = parseWebhookUrls(override);
+		List<String> urls = parseWebhookUrls(override);
 		return urls.isEmpty() ? parseWebhookUrls(primary) : urls;
 	}
 
-	static List<HttpUrl> parseWebhookUrls(String configured)
+	static List<String> parseWebhookUrls(String configured)
 	{
 		if (Strings.isNullOrEmpty(configured))
 		{
 			return Collections.emptyList();
 		}
 
-		return Arrays.stream(configured.split("[\n,;]"))
-			.map(String::trim)
-			.filter(u -> !u.isEmpty())
+		return WildcardList.entries(configured, "[\\s,;]")
 			.map(HttpUrl::parse)
 			.filter(Objects::nonNull)
+			.map(HttpUrl::toString)
 			.collect(Collectors.toList());
 	}
 
@@ -202,7 +185,7 @@ public class DiscordWebhookService
 					return;
 				}
 				clientThread.invoke(() -> unhideWidgets(hidden));
-				executor.execute(() -> onImage.accept(encodeScreenshot(image)));
+				executor.execute(() -> onImage.accept(ScreenshotEncoder.encode(image)));
 			});
 		});
 	}
@@ -242,84 +225,6 @@ public class DiscordWebhookService
 		}
 	}
 
-	private static byte[] encodeScreenshot(Image image)
-	{
-		if (!(image instanceof BufferedImage))
-		{
-			return null;
-		}
-
-		try
-		{
-			return encodeUnderLimit((BufferedImage) image);
-		}
-		catch (IOException | RuntimeException e)
-		{
-			log.warn("Error converting image to byte array", e);
-			return null;
-		}
-	}
-
-	static byte[] encodeUnderLimit(BufferedImage image) throws IOException
-	{
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		ImageIO.write(image, "png", out);
-		byte[] png = out.toByteArray();
-		if (png.length <= MAX_IMAGE_BYTES)
-		{
-			return png;
-		}
-
-		byte[] jpeg = encodeJpeg(scaleToRgb(image, Math.sqrt((double) MAX_IMAGE_BYTES / png.length)));
-		if (jpeg.length > MAX_IMAGE_BYTES)
-		{
-			// Discord would reject the whole post, the text is still worth sending
-			log.warn("Screenshot still {} bytes after scaling, sending without it", jpeg.length);
-			return null;
-		}
-		return jpeg;
-	}
-
-	private static BufferedImage scaleToRgb(BufferedImage image, double factor)
-	{
-		int width = Math.max(1, (int) (image.getWidth() * factor));
-		int height = Math.max(1, (int) (image.getHeight() * factor));
-
-		// The JPEG writer writes nothing at all for an image with alpha
-		BufferedImage scaled = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-		Graphics2D graphics = scaled.createGraphics();
-		graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-		graphics.drawImage(image, 0, 0, width, height, null);
-		graphics.dispose();
-		return scaled;
-	}
-
-	private static byte[] encodeJpeg(BufferedImage image) throws IOException
-	{
-		ImageWriter writer = ImageIO.getImageWritersByFormatName("jpeg").next();
-		try (ByteArrayOutputStream out = new ByteArrayOutputStream();
-			ImageOutputStream stream = ImageIO.createImageOutputStream(out))
-		{
-			ImageWriteParam param = writer.getDefaultWriteParam();
-			param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-			param.setCompressionQuality(JPEG_QUALITY);
-			writer.setOutput(stream);
-			writer.write(null, new IIOImage(image, null, null), param);
-			stream.flush();
-			return out.toByteArray();
-		}
-		finally
-		{
-			writer.dispose();
-		}
-	}
-
-	// The queue only carries bytes. PNG starts with 0x89, JPEG with FF D8
-	static boolean isJpeg(byte[] image)
-	{
-		return image != null && image.length >= 2 && image[0] == (byte) 0xFF && image[1] == (byte) 0xD8;
-	}
-
 	static String truncate(String text)
 	{
 		if (text.length() <= MAX_CONTENT_LENGTH)
@@ -337,9 +242,9 @@ public class DiscordWebhookService
 	{
 		DiscordWebhookBody body = new DiscordWebhookBody();
 		body.setContent(truncate(text));
-		String payload = GSON.toJson(body);
+		String payload = gson.toJson(body);
 
-		boolean jpeg = isJpeg(image);
+		boolean jpeg = ScreenshotEncoder.isJpeg(image);
 		RequestBody imageBody = image == null ? null : RequestBody.create(jpeg ? JPEG : PNG, image);
 		OkHttpClient client = imageBody == null ? httpClient : httpClient.newBuilder()
 			.writeTimeout(IMAGE_WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)

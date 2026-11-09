@@ -1,12 +1,13 @@
 package com.discordnotifications.notifiers;
 
-import com.discordnotifications.ClueTier;
+import com.discordnotifications.CompletedClue;
 import com.discordnotifications.ItemStackFormatter;
-import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
-import lombok.Value;
+import net.runelite.api.Item;
+import net.runelite.api.ItemContainer;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.util.QuantityFormatter;
 
@@ -16,15 +17,11 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Singleton
 public class ClueNotifier extends BaseNotifier
 {
-	private static final Pattern CLUE_REGEX = Pattern.compile("You have completed (?<count>\\d+) (?<tier>\\w+) Treasure Trails?\\.");
-
 	@Inject
 	private ItemStackFormatter itemStackFormatter;
 
@@ -45,7 +42,7 @@ public class ClueNotifier extends BaseNotifier
 			return;
 		}
 
-		CompletedClue completed = parse(chatMessage);
+		CompletedClue completed = CompletedClue.parse(chatMessage);
 		if (completed != null && completed.getTier().ordinal() >= config.minClueTier().ordinal())
 		{
 			pending = completed;
@@ -60,13 +57,8 @@ public class ClueNotifier extends BaseNotifier
 			return;
 		}
 
-		Widget items = client.getWidget(InterfaceID.TrailRewardscreen.ITEMS);
-		Widget[] children = items == null ? null : items.getChildren();
-		if (children != null)
-		{
-			sendClue(pending, rewards(children));
-			reset();
-		}
+		sendClue(pending, rewards());
+		reset();
 	}
 
 	// The chat message comes first, so a screen that never loaded can't pair with the next clue
@@ -78,48 +70,54 @@ public class ClueNotifier extends BaseNotifier
 		}
 	}
 
-	private List<ItemStackFormatter.Stack> rewards(Widget[] children)
+	private List<ItemStackFormatter.Stack> rewards()
 	{
 		Map<Integer, Integer> quantities = new LinkedHashMap<>();
-		for (Widget child : children)
+		ItemContainer container = client.getItemContainer(InventoryID.TRAIL_REWARDINV);
+		if (container != null)
 		{
-			if (child != null && child.getItemId() > -1 && child.getItemQuantity() > 0)
+			for (Item item : container.getItems())
 			{
-				quantities.merge(child.getItemId(), child.getItemQuantity(), Integer::sum);
+				addReward(quantities, item.getId(), item.getQuantity());
+			}
+		}
+
+		Widget items = client.getWidget(InterfaceID.TrailRewardscreen.ITEMS);
+		Widget[] children = items == null ? null : items.getChildren();
+		if (quantities.isEmpty() && children != null)
+		{
+			for (Widget child : children)
+			{
+				if (child != null)
+				{
+					addReward(quantities, child.getItemId(), child.getItemQuantity());
+				}
 			}
 		}
 
 		return quantities.entrySet().stream()
-			.map(entry -> itemStackFormatter.stack(entry.getKey(), entry.getValue()))
+			.map(entry -> itemStackFormatter.stackWithStorePrice(entry.getKey(), entry.getValue()))
 			.collect(Collectors.toList());
+	}
+
+	private static void addReward(Map<Integer, Integer> quantities, int itemId, int quantity)
+	{
+		if (itemId > -1 && quantity > 0)
+		{
+			quantities.merge(itemId, quantity, Integer::sum);
+		}
 	}
 
 	private void sendClue(CompletedClue completed, List<ItemStackFormatter.Stack> rewards)
 	{
 		long value = ItemStackFormatter.totalValue(rewards);
-		if (value < config.minClueValue())
+		// No rewards means we couldn't read them, so there's no value to filter on
+		if (!rewards.isEmpty() && value < config.minClueValue())
 		{
 			return;
 		}
 
-		send(Notification.builder()
-			.type(NotificationType.CLUE)
-			.text(config.clueMessage())
-			.placeholders(placeholders(completed, rewards))
-			.screenshot(config.sendClueScreenshot() && value >= config.clueScreenshotMinValue())
-			.build());
-	}
-
-	public static CompletedClue parse(String message)
-	{
-		Matcher matcher = CLUE_REGEX.matcher(message);
-		if (!matcher.find())
-		{
-			return null;
-		}
-
-		ClueTier tier = ClueTier.fromName(matcher.group("tier"));
-		return tier == null ? null : new CompletedClue(tier, Integer.parseInt(matcher.group("count")));
+		send(NotificationType.CLUE, config.clueMessage(), placeholders(completed, rewards), config.sendClueScreenshot());
 	}
 
 	static Map<String, String> placeholders(CompletedClue completed, List<ItemStackFormatter.Stack> rewards)
@@ -130,12 +128,5 @@ public class ClueNotifier extends BaseNotifier
 		placeholders.put("items", ItemStackFormatter.format(rewards));
 		placeholders.put("value", QuantityFormatter.quantityToStackSize(ItemStackFormatter.totalValue(rewards)));
 		return placeholders;
-	}
-
-	@Value
-	public static class CompletedClue
-	{
-		ClueTier tier;
-		int count;
 	}
 }

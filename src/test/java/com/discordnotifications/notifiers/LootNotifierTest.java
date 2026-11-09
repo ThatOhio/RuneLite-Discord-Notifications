@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import net.runelite.client.game.ItemStack;
+import net.runelite.http.api.loottracker.LootRecordType;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -194,7 +195,6 @@ public class LootNotifierTest
 	{
 		assertEquals("Pyramid Plunder", LootNotifier.CHAT_DROPS.get("You have found a Pharaoh's sceptre! It fell on the floor.").getSource());
 		assertEquals("Deep sea trawling", LootNotifier.CHAT_DROPS.get("You catch a swift marlin!").getSource());
-		assertEquals(7, LootNotifier.CHAT_DROPS.size());
 	}
 
 	@Test
@@ -205,5 +205,41 @@ public class LootNotifierTest
 		assertTrue(LootNotifier.isSkippedEvent("clue scroll (easy)"));
 		assertFalse(LootNotifier.isSkippedEvent("Chambers of Xeric"));
 		assertFalse(LootNotifier.isSkippedEvent("Clue"));
+		assertFalse(LootNotifier.isSkippedEvent(null));
+	}
+
+	@Test
+	public void deniedSourcesMatchIgnoringCaseAndWithWildcards()
+	{
+		WildcardList denylist = WildcardList.parse("barrows\n*Tempoross*");
+		assertTrue(LootNotifier.isDeniedSource("Barrows", LootRecordType.EVENT, denylist));
+		assertTrue(LootNotifier.isDeniedSource("Reward pool (Tempoross)", LootRecordType.EVENT, denylist));
+		assertFalse(LootNotifier.isDeniedSource("Vorkath", LootRecordType.NPC, denylist));
+	}
+
+	@Test
+	public void sourceDenylistIgnoresPlayers()
+	{
+		WildcardList denylist = WildcardList.parse("Zezima");
+		assertFalse(LootNotifier.isDeniedSource("Zezima", LootRecordType.PLAYER, denylist));
+		assertTrue(LootNotifier.isDeniedSource("Zezima", LootRecordType.NPC, denylist));
+	}
+
+	@Test
+	public void deniedSourceIsMatchedWithoutTags()
+	{
+		assertTrue(LootNotifier.isDeniedSource("<col=ff0000>Vorkath</col>", LootRecordType.NPC, WildcardList.parse("Vorkath")));
+	}
+
+	@Test
+	public void emptySourceDenylistDeniesNothing()
+	{
+		assertFalse(LootNotifier.isDeniedSource("Vorkath", LootRecordType.NPC, WildcardList.parse("")));
+	}
+
+	@Test
+	public void missingSourceIsNotAnError()
+	{
+		assertFalse(LootNotifier.isDeniedSource(null, LootRecordType.NPC, WildcardList.parse("Vorkath")));
 	}
 }

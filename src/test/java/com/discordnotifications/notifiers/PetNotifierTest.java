@@ -1,16 +1,144 @@
 package com.discordnotifications.notifiers;
 
+import com.discordnotifications.DiscordNotificationsConfig;
+import com.discordnotifications.DiscordWebhookService;
+import com.discordnotifications.KillCountService;
+import com.discordnotifications.Notification;
+import net.runelite.api.Client;
+import net.runelite.api.Player;
+import net.runelite.api.WorldType;
+import net.runelite.http.api.loottracker.LootRecordType;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+import java.time.Instant;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.regex.Matcher;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class PetNotifierTest
 {
+	private static final String FOLLOWED = "You have a funny feeling like you're being followed.";
+	private static final String WOULD_HAVE_BEEN = "You have a funny feeling like you would have been followed...";
+	private static final String TEMPLATE = "$name got $pet$from$kc";
+	private static final int WAIT_TICKS = 6;
+
+	@Mock
+	private Client client;
+
+	@Mock
+	private DiscordNotificationsConfig config;
+
+	@Mock
+	private DiscordWebhookService webhookService;
+
+	@Mock
+	private HeldNotifications heldNotifications;
+
+	@Mock
+	private KillCountService killCountService;
+
+	@Mock
+	private Player player;
+
+	@InjectMocks
+	private PetNotifier notifier;
+
+	@Before
+	public void setUp()
+	{
+		lenient().when(client.getWorldType()).thenReturn(EnumSet.noneOf(WorldType.class));
+		lenient().when(client.getLocalPlayer()).thenReturn(player);
+		lenient().when(player.getName()).thenReturn("Bob");
+		lenient().when(config.includePets()).thenReturn(true);
+		lenient().when(config.petMessage()).thenReturn(TEMPLATE);
+	}
+
+	private void play(String... messages)
+	{
+		for (String message : messages)
+		{
+			notifier.onGameMessage(message);
+		}
+		for (int i = 0; i < WAIT_TICKS; i++)
+		{
+			notifier.onGameTick();
+		}
+	}
+
+	private Notification posted()
+	{
+		ArgumentCaptor<Notification> sent = ArgumentCaptor.forClass(Notification.class);
+		verify(webhookService).send(sent.capture());
+		return sent.getValue();
+	}
+
+	@Test
+	public void knownNameUsesTheTemplate()
+	{
+		play(FOLLOWED, "Untradeable drop: Olmlet");
+		assertEquals("Bob got Olmlet", posted().getText());
+		assertNull(posted().getNamedText());
+	}
+
+	@Test
+	public void noNameFallsBackAndLeavesTheTemplateForTheQueue()
+	{
+		play(FOLLOWED);
+		assertEquals("Bob just got a pet!", posted().getText());
+		assertEquals(TEMPLATE, posted().getNamedText());
+	}
+
+	@Test
+	public void fallbackKeepsSourceAndKc()
+	{
+		when(killCountService.getRecentPetDrop()).thenReturn(new KillCountService.Drop("Zulrah", LootRecordType.NPC, Collections.emptyList(), Instant.now()));
+		when(killCountService.getKillCount(LootRecordType.NPC, "Zulrah")).thenReturn(50);
+		play(FOLLOWED);
+		assertEquals("Bob just got a pet from Zulrah (KC 50)!", posted().getText());
+	}
+
+	@Test
+	public void templateThatDoesntNeedTheNameIsKept()
+	{
+		when(config.petMessage()).thenReturn("$name got a pet!");
+		play(FOLLOWED);
+		assertEquals("Bob got a pet!", posted().getText());
+		assertEquals("$name got a pet!", posted().getNamedText());
+	}
+
+	@Test
+	public void duplicateNeverWaitsOnACollectionLogName()
+	{
+		when(config.notifyDuplicatePets()).thenReturn(true);
+		play(WOULD_HAVE_BEEN);
+		assertEquals("Bob just got a pet! (would have been followed)", posted().getText());
+		assertNull(posted().getNamedText());
+	}
+
+	@Test
+	public void duplicatesAreSkippedWhenTurnedOff()
+	{
+		play(WOULD_HAVE_BEEN, "Untradeable drop: Olmlet");
+		verify(webhookService, never()).send(any());
+	}
+
 	private static Matcher clan(String message)
 	{
 		Matcher matcher = PetNotifier.CLAN_REGEX.matcher(message);

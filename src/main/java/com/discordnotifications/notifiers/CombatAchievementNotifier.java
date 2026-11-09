@@ -1,7 +1,6 @@
 package com.discordnotifications.notifiers;
 
 import com.discordnotifications.CombatAchievementTier;
-import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import lombok.Value;
 import net.runelite.api.gameval.VarbitID;
@@ -46,12 +45,9 @@ public class CombatAchievementNotifier extends BaseNotifier
 		CombatAchievementTier unlocked = unlockedTier(totalPoints, completed.getTier().getPoints(),
 			tier -> client.getVarbitValue(tier.getThresholdVarbit()));
 
-		send(Notification.builder()
-			.type(NotificationType.COMBAT_ACHIEVEMENT)
-			.text(config.combatAchievementsMessage())
-			.placeholders(placeholders(completed, totalPoints, unlocked))
-			.screenshot(config.sendCombatAchievementsScreenshot())
-			.build());
+		send(NotificationType.COMBAT_ACHIEVEMENT, config.combatAchievementsMessage(),
+			placeholders(completed, totalPoints, unlocked),
+			config.sendCombatAchievementsScreenshot());
 	}
 
 	static CompletedTask parse(String message)

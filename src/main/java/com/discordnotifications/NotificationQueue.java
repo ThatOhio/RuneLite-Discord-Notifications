@@ -86,7 +86,7 @@ class NotificationQueue
 
 	synchronized void add(List<String> urls, Notification notification)
 	{
-		long now = System.currentTimeMillis();
+		long now = now();
 		Batch batch = batches.computeIfAbsent(urls, u -> new Batch(u, now + WINDOW_MS));
 		batch.notifications.add(notification);
 
@@ -110,7 +110,7 @@ class NotificationQueue
 
 	private synchronized void sweep()
 	{
-		long now = System.currentTimeMillis();
+		long now = now();
 		for (Iterator<Batch> it = batches.values().iterator(); it.hasNext(); )
 		{
 			Batch batch = it.next();
@@ -121,6 +121,12 @@ class NotificationQueue
 				post(batch);
 			}
 		}
+	}
+
+	// Tests override this so the windows don't have to really pass
+	long now()
+	{
+		return System.currentTimeMillis();
 	}
 
 	private void post(Batch batch)

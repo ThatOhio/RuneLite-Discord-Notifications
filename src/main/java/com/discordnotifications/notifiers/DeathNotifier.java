@@ -1,12 +1,14 @@
 package com.discordnotifications.notifiers;
 
 import com.discordnotifications.DangerLevel;
-import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import com.discordnotifications.WildcardList;
 import com.discordnotifications.WorldUtils;
 import net.runelite.api.Actor;
+import net.runelite.api.NPC;
+import net.runelite.api.NPCComposition;
 import net.runelite.api.Player;
+import net.runelite.api.Skill;
 import net.runelite.api.events.ActorDeath;
 import net.runelite.api.events.InteractingChanged;
 import net.runelite.api.events.ScriptPreFired;
@@ -14,6 +16,8 @@ import net.runelite.api.events.ScriptPreFired;
 import javax.inject.Singleton;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.stream.Stream;
 
 @Singleton
 public class DeathNotifier extends BaseNotifier
@@ -26,11 +30,14 @@ public class DeathNotifier extends BaseNotifier
 
 	private WeakReference<Actor> lastTarget = new WeakReference<>(null);
 	private int lastTargetTick;
+	private boolean targetingLast;
 
 	@Override
 	public void reset()
 	{
 		lastTarget.clear();
+		lastTargetTick = 0;
+		targetingLast = false;
 	}
 
 	public void onActorDeath(ActorDeath actorDeath)
@@ -54,7 +61,7 @@ public class DeathNotifier extends BaseNotifier
 		{
 			// Doom kills you without reaching 0 HP, so there's no ActorDeath
 			Player player = client.getLocalPlayer();
-			if (config.includeDeaths() && player != null && player.getHealthRatio() > 0
+			if (config.includeDeaths() && player != null && client.getBoostedSkillLevel(Skill.HITPOINTS) > 0
 				&& WorldUtils.getLocation(client, player).getRegionID() == WorldUtils.FORTIS_REGION)
 			{
 				notifyDeath(true);
@@ -89,11 +96,18 @@ public class DeathNotifier extends BaseNotifier
 		}
 
 		Actor target = event.getTarget();
-		if (target != null && target.getCombatLevel() > 0)
+		boolean accepted = target != null && target.getCombatLevel() > 0;
+		if (accepted)
 		{
 			lastTarget = new WeakReference<>(target);
 		}
-		lastTargetTick = client.getTickCount();
+
+		// Running from a fight still counts as recent, so the window starts when you disengage
+		if (accepted || (target == null && targetingLast))
+		{
+			lastTargetTick = client.getTickCount();
+		}
+		targetingLast = accepted;
 	}
 
 	// With safe deaths on, or on a hardcore, the ActorDeath in the raid was already posted
@@ -130,38 +144,63 @@ public class DeathNotifier extends BaseNotifier
 			template = killer instanceof Player ? config.deathPvpMessage() : config.deathNpcMessage();
 		}
 
-		send(Notification.builder()
-			.type(NotificationType.DEATH)
-			.text(template)
-			.placeholders(Collections.singletonMap("killer", killerName))
-			.screenshot(config.sendDeathScreenshot())
-			.build());
+		send(NotificationType.DEATH, template, Collections.singletonMap("killer", killerName), config.sendDeathScreenshot());
 	}
 
 	private Actor findKiller(Player player)
 	{
 		Actor target = lastTarget.get();
+		if (isLastTargetKiller(player, target))
+		{
+			return target;
+		}
+
+		if (WorldUtils.canBePked(client))
+		{
+			Actor pker = closestAttacker(player, client.getTopLevelWorldView().players().stream().filter(DeathNotifier::isHostile));
+			if (pker != null)
+			{
+				return pker;
+			}
+		}
+
+		return closestAttacker(player, client.getTopLevelWorldView().npcs().stream().filter(DeathNotifier::isCombatNpc));
+	}
+
+	private boolean isLastTargetKiller(Player player, Actor target)
+	{
 		if (target == null || target.isDead() || target.getInteracting() != player)
 		{
-			return null;
+			return false;
 		}
 
 		// InteractingChanged doesn't fire during a long fight, so still targeting it counts as recent
 		if (player.getInteracting() != target && client.getTickCount() - lastTargetTick > KILLER_WINDOW_TICKS)
 		{
-			return null;
+			return false;
 		}
 
-		if (target instanceof Player)
-		{
-			// Friends following you also show up as interacting
-			Player other = (Player) target;
-			if (!WorldUtils.canBePked(client) || other.isFriend() || other.isClanMember() || other.isFriendsChatMember())
-			{
-				return null;
-			}
-		}
+		return !(target instanceof Player) || (WorldUtils.canBePked(client) && isHostile((Player) target));
+	}
 
-		return target;
+	private static Actor closestAttacker(Player player, Stream<? extends Actor> candidates)
+	{
+		Comparator<Actor> nearest = Comparator.comparingInt(a -> a.getLocalLocation().distanceTo(player.getLocalLocation()));
+		return candidates
+			.filter(a -> a.getInteracting() == player && !a.isDead())
+			.min(nearest.thenComparing(Actor::getCombatLevel, Comparator.reverseOrder()))
+			.orElse(null);
+	}
+
+	// Friends following you also show up as interacting
+	private static boolean isHostile(Player other)
+	{
+		return !other.isFriend() && !other.isClanMember() && !other.isFriendsChatMember();
+	}
+
+	private static boolean isCombatNpc(NPC npc)
+	{
+		NPCComposition composition = npc.getTransformedComposition();
+		return composition != null && composition.isInteractible() && !composition.isFollower() && composition.getCombatLevel() > 0;
 	}
 }

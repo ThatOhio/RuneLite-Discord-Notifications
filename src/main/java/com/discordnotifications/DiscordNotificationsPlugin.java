@@ -5,6 +5,7 @@ import com.discordnotifications.notifiers.CollectionLogNotifier;
 import com.discordnotifications.notifiers.CombatAchievementNotifier;
 import com.discordnotifications.notifiers.DeathNotifier;
 import com.discordnotifications.notifiers.DiaryNotifier;
+import com.discordnotifications.notifiers.HeldNotifications;
 import com.discordnotifications.notifiers.KillCountNotifier;
 import com.discordnotifications.notifiers.LeaguesNotifier;
 import com.discordnotifications.notifiers.LevelNotifier;
@@ -76,6 +77,9 @@ public class DiscordNotificationsPlugin extends Plugin
 	private LeaguesNotifier leaguesNotifier;
 
 	@Inject
+	private HeldNotifications heldNotifications;
+
+	@Inject
 	private KillCountService killCountService;
 
 	@Inject
@@ -83,6 +87,8 @@ public class DiscordNotificationsPlugin extends Plugin
 
 	@Inject
 	private GameSettingsWarning gameSettingsWarning;
+
+	private GameState gameState;
 
 	@Provides
 	DiscordNotificationsConfig provideConfig(ConfigManager configManager)
@@ -93,6 +99,7 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
+		gameState = null;
 		resetState();
 		notificationQueue.start();
 	}
@@ -112,8 +119,16 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged gameStateChanged)
 	{
+		GameState newState = gameStateChanged.getGameState();
+		// LOADING fires on every region change, then we land back in the same state
+		if (newState == GameState.LOADING || newState == gameState)
+		{
+			return;
+		}
+		gameState = newState;
+
 		diaryNotifier.onGameStateChanged(gameStateChanged);
-		if (gameStateChanged.getGameState().equals(GameState.LOGIN_SCREEN))
+		if (newState == GameState.LOGIN_SCREEN)
 		{
 			resetState();
 		}
@@ -128,6 +143,7 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
+		heldNotifications.onGameTick();
 		clueNotifier.onGameTick();
 		levelNotifier.onGameTick();
 		petNotifier.onGameTick();
@@ -147,9 +163,10 @@ public class DiscordNotificationsPlugin extends Plugin
 	public void onVarbitChanged(VarbitChanged event)
 	{
 		diaryNotifier.onVarbitChanged(event);
+		gameSettingsWarning.onVarbitChanged(event);
 	}
 
-	@Subscribe
+	@Subscribe(priority = 1) // before core's loot tracker, raid loot needs the mode from chat
 	public void onChatMessage(ChatMessage event)
 	{
 		ChatMessageType type = event.getType();
@@ -171,6 +188,12 @@ public class DiscordNotificationsPlugin extends Plugin
 			return;
 		}
 
+		if (type == ChatMessageType.SPAM)
+		{
+			killCountService.notePickpocket(sanitize(event.getMessage()));
+			return;
+		}
+
 		if (type != ChatMessageType.GAMEMESSAGE)
 		{
 			return;
@@ -183,8 +206,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		}
 
 		String message = sanitize(event.getMessage());
-		killCountService.onGameMessage(message);
-		killCountNotifier.onGameMessage(message);
+		killCountNotifier.onGameMessage(message, killCountService.onGameMessage(message));
 		petNotifier.onGameMessage(message);
 		collectionLogNotifier.onGameMessage(message);
 		combatAchievementNotifier.onGameMessage(message);
@@ -219,15 +241,19 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Subscribe(priority = 1)
 	public void onServerNpcLoot(ServerNpcLoot event)
 	{
-		killCountService.onServerNpcLoot(event);
-		lootNotifier.onServerNpcLoot(event);
+		if (killCountService.onServerNpcLoot(event))
+		{
+			lootNotifier.onServerNpcLoot(event);
+		}
 	}
 
 	@Subscribe(priority = 1)
 	public void onNpcLootReceived(NpcLootReceived event)
 	{
-		killCountService.onNpcLootReceived(event);
-		lootNotifier.onNpcLootReceived(event);
+		if (killCountService.onNpcLootReceived(event))
+		{
+			lootNotifier.onNpcLootReceived(event);
+		}
 	}
 
 	@Subscribe(priority = 1)
@@ -254,6 +280,7 @@ public class DiscordNotificationsPlugin extends Plugin
 
 	private void resetState()
 	{
+		heldNotifications.reset();
 		killCountService.reset();
 		levelNotifier.reset();
 		clueNotifier.reset();

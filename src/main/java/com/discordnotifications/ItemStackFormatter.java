@@ -17,11 +17,6 @@ public class ItemStackFormatter
 	@Inject
 	private ItemManager itemManager;
 
-	public Stack stack(int itemId, int quantity)
-	{
-		return new Stack(itemManager.getItemComposition(itemId).getMembersName(), quantity, itemManager.getItemPrice(itemId));
-	}
-
 	public Stack stackWithStorePrice(int itemId, int quantity)
 	{
 		ItemComposition item = itemManager.getItemComposition(itemId);

@@ -1,6 +1,5 @@
 package com.discordnotifications.notifiers;
 
-import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import com.discordnotifications.WorldUtils;
 import com.google.common.collect.ImmutableMap;
@@ -8,6 +7,7 @@ import net.runelite.api.Experience;
 import net.runelite.api.Skill;
 import net.runelite.api.WorldType;
 import net.runelite.api.events.StatChanged;
+import net.runelite.client.util.QuantityFormatter;
 
 import javax.inject.Singleton;
 import java.util.ArrayList;
@@ -138,7 +138,7 @@ public class LevelNotifier extends BaseNotifier
 
 	private void queueLevelUp(String name, int previousLevel, int newLevel, boolean allowVirtual)
 	{
-		// Certain activities can multilevel, check if any of the levels are valid for the message.
+		// Certain activities can multilevel
 		for (int level = previousLevel + 1; level <= newLevel; level++)
 		{
 			if (shouldSendForThisLevel(level, allowVirtual))
@@ -201,16 +201,12 @@ public class LevelNotifier extends BaseNotifier
 		}
 		leveledSkills.clear();
 
-		int screenshotMin = config.levelScreenshotMinLevel();
-		send(Notification.builder()
-			.type(NotificationType.LEVEL)
-			.text(config.levelMessage())
-			.placeholders(levelPlaceholders(levels, client.getTotalLevel(), currentLevels.get(COMBAT)))
-			.screenshot(config.sendLevellingScreenshot() && levels.values().stream().anyMatch(level -> level >= screenshotMin))
-			.build());
+		send(NotificationType.LEVEL, config.levelMessage(),
+			levelPlaceholders(levels, client.getTotalLevel(), currentLevels.get(COMBAT), client.getOverallExperience()),
+			config.sendLevellingScreenshot());
 	}
 
-	static Map<String, String> levelPlaceholders(Map<String, Integer> levels, int totalLevel, int combatLevel)
+	static Map<String, String> levelPlaceholders(Map<String, Integer> levels, int totalLevel, int combatLevel, long totalXp)
 	{
 		List<String> skills = new ArrayList<>();
 		for (Map.Entry<String, Integer> entry : levels.entrySet())
@@ -224,12 +220,14 @@ public class LevelNotifier extends BaseNotifier
 			: String.join(", ", skills.subList(0, last)) + " and " + skills.get(last);
 
 		Map.Entry<String, Integer> first = levels.entrySet().iterator().next();
-		return ImmutableMap.of(
-			"skills", joined,
-			"skill", first.getKey(),
-			"level", displayLevel(first.getValue()),
-			"total", Integer.toString(totalLevel),
-			"combat", Integer.toString(combatLevel));
+		return ImmutableMap.<String, String>builder()
+			.put("skills", joined)
+			.put("skill", first.getKey())
+			.put("level", displayLevel(first.getValue()))
+			.put("total", Integer.toString(totalLevel))
+			.put("totalXp", QuantityFormatter.formatNumber(totalXp))
+			.put("combat", Integer.toString(combatLevel))
+			.build();
 	}
 
 	private static String displayLevel(int level)

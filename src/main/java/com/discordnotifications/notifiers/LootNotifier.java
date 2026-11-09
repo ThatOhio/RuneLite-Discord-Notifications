@@ -13,7 +13,6 @@ import lombok.Value;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
-import net.runelite.api.NPCComposition;
 import net.runelite.api.Player;
 import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.ItemID;
@@ -97,19 +96,17 @@ public class LootNotifier extends BaseNotifier
 
 	public void onNpcLootReceived(NpcLootReceived event)
 	{
-		String name = event.getNpc().getName();
-		if (config.includeLoot() && KillCountService.usesNpcLootEvent(event.getNpc().getId(), name))
+		if (config.includeLoot())
 		{
-			handleLoot(event.getItems(), name, LootRecordType.NPC);
+			handleLoot(event.getItems(), event.getNpc().getName(), LootRecordType.NPC);
 		}
 	}
 
 	public void onServerNpcLoot(ServerNpcLoot event)
 	{
-		NPCComposition npc = event.getComposition();
-		if (config.includeLoot() && KillCountService.usesServerLoot(npc.getId(), npc.getName()))
+		if (config.includeLoot())
 		{
-			handleLoot(event.getItems(), npc.getName(), LootRecordType.NPC);
+			handleLoot(event.getItems(), event.getComposition().getName(), LootRecordType.NPC);
 		}
 	}
 
@@ -133,7 +130,7 @@ public class LootNotifier extends BaseNotifier
 
 	public void onLootReceived(LootReceived event)
 	{
-		if (!config.includeLoot() || isSkippedEvent(event.getName()))
+		if (!config.includeLoot() || event.getName() == null || isSkippedEvent(event.getName()))
 		{
 			return;
 		}
@@ -166,7 +163,7 @@ public class LootNotifier extends BaseNotifier
 
 		for (PendingLoot loot : pendingEventLoot)
 		{
-			handleLoot(withoutUnequipped(loot.getItems(), unequipped), loot.getSource(), loot::getKc);
+			handleLoot(withoutUnequipped(loot.getItems(), unequipped), loot.getSource(), LootRecordType.EVENT, loot::getKc);
 		}
 		pendingEventLoot.clear();
 	}
@@ -229,11 +226,16 @@ public class LootNotifier extends BaseNotifier
 
 	private void handleLoot(Collection<ItemStack> items, String source, LootRecordType type)
 	{
-		handleLoot(items, source, () -> killCountService.getKillCount(type, source));
+		handleLoot(items, source, type, () -> killCountService.getKillCount(type, source));
 	}
 
-	private void handleLoot(Collection<ItemStack> items, String source, Supplier<Integer> kc)
+	private void handleLoot(Collection<ItemStack> items, String source, LootRecordType type, Supplier<Integer> kc)
 	{
+		if (isDeniedSource(source, type, WildcardList.parse(config.lootSourceDenylist())))
+		{
+			return;
+		}
+
 		Map<Integer, Integer> quantities = new LinkedHashMap<>();
 		for (ItemStack item : items)
 		{
@@ -261,7 +263,12 @@ public class LootNotifier extends BaseNotifier
 
 	static boolean isSkippedEvent(String name)
 	{
-		return BA_GAMBLE.equals(name) || name.regionMatches(true, 0, CLUE_SCROLL, 0, CLUE_SCROLL.length());
+		return name != null && (BA_GAMBLE.equals(name) || name.regionMatches(true, 0, CLUE_SCROLL, 0, CLUE_SCROLL.length()));
+	}
+
+	static boolean isDeniedSource(String source, LootRecordType type, WildcardList denylist)
+	{
+		return type != LootRecordType.PLAYER && denylist.matches(sanitize(source));
 	}
 
 	static List<ItemStackFormatter.Stack> qualifying(List<ItemStackFormatter.Stack> stacks, String source, long minValue, LootValueBasis basis, WildcardList allowlist, WildcardList denylist)
