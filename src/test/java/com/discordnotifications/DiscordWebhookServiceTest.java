@@ -40,6 +40,15 @@ public class DiscordWebhookServiceTest
 			parse("https://a.example/1, https://a.example/2\nhttps://a.example/3;\n  https://a.example/4  "));
 	}
 
+	// secret config fields are single line, Swing turns saved newlines into spaces
+	@Test
+	public void splitsOnSpaces()
+	{
+		assertEquals(
+			List.of("https://a.example/1", "https://a.example/2"),
+			parse("https://a.example/1 https://a.example/2"));
+	}
+
 	@Test
 	public void dropsEntriesThatAreNotUrls()
 	{

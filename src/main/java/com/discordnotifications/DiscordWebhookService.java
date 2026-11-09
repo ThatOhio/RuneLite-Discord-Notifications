@@ -160,7 +160,7 @@ public class DiscordWebhookService
 			return Collections.emptyList();
 		}
 
-		return Arrays.stream(configured.split("[\n,;]"))
+		return Arrays.stream(configured.split("[\\s,;]"))
 			.map(String::trim)
 			.filter(u -> !u.isEmpty())
 			.map(HttpUrl::parse)

@@ -4,7 +4,7 @@ This is a plugin for RuneLite which sends a message to your discord channel when
 In order to use this plugin you will need to create a webhook on your discord server. Below are instructions for how to do so:
 1. Open your Server Settings and head into the Integrations tab
 2. Click the "Create Webhook" button to create a new webhook
-3. Once created, copy the webhook URL and insert into the "Webhook URL" box in the plugin's configuration in RuneLite. If you want to post to more than one channel, put each URL on its own line.
+3. Once created, copy the webhook URL and insert into the "Webhook URL" box in the plugin's configuration in RuneLite. If you want to post to more than one channel, separate the URLs with commas.
 
 Discord has a more detailed guide here: https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks
 
