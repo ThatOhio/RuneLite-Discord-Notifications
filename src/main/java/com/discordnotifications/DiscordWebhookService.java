@@ -32,10 +32,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-/**
- * Owns all outbound traffic for the plugin. Everything else builds message text and hands it here,
- * so the Discord webhook call exists in exactly one place.
- */
 @Slf4j
 @Singleton
 public class DiscordWebhookService

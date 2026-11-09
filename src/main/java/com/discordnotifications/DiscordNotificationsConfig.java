@@ -6,287 +6,314 @@ import net.runelite.client.config.ConfigItem;
 import net.runelite.client.config.ConfigSection;
 
 @ConfigGroup("discordnotifications")
-public interface DiscordNotificationsConfig extends Config {
-
-	// Webhook config section
+public interface DiscordNotificationsConfig extends Config
+{
 	@ConfigSection(
-			name = "Webhook Settings",
-			description = "The config for webhook content notifications",
-			position = 0
+		name = "Webhook Settings",
+		description = "The config for webhook content notifications",
+		position = 0
 	)
 	String webhookConfig = "webhookConfig";
 
 	@ConfigItem(
-			keyName = "webhook",
-			name = "Webhook URL(s)",
-			description = "The Discord Webhook URL(s) to send messages to. If you have more than one, separate them with commas.",
-			section = webhookConfig,
-			secret = true,
-			position = 0
+		keyName = "webhook",
+		name = "Webhook URL(s)",
+		description = "The Discord Webhook URL(s) to send messages to. If you have more than one, separate them with commas.",
+		section = webhookConfig,
+		secret = true,
+		position = 0
 	)
 	String webhook();
 
 	@ConfigItem(
-			keyName = "chatPrivacy",
-			name = "Hide chat in screenshots",
-			description = "What to hide when taking a screenshot. Hide split PMs only does something if you have split private chat turned on in game. The chat might flicker for a frame while it's hidden.",
-			section = webhookConfig,
-			position = 1
+		keyName = "chatPrivacy",
+		name = "Hide chat in screenshots",
+		description = "What to hide when taking a screenshot. Hide split PMs only does something if you have split private chat turned on in game. The chat might flicker for a frame while it's hidden.",
+		section = webhookConfig,
+		position = 1
 	)
-	default ChatPrivacy chatPrivacy() {
+	default ChatPrivacy chatPrivacy()
+	{
 		return ChatPrivacy.HIDE_SPLIT_PM;
 	}
 
-	// Levelling config section
 	@ConfigSection(
-			name = "Levelling",
-			description = "The config for levelling notifications",
-			position = 1,
-			closedByDefault = true
+		name = "Levelling",
+		description = "The config for levelling notifications",
+		position = 1,
+		closedByDefault = true
 	)
 	String levellingConfig = "levellingConfig";
 
 	@ConfigItem(
-			keyName = "includeLevelling",
-			name = "Send Levelling Notifications",
-			description = "Send messages when you level up a skill.",
-			section = levellingConfig,
-			position = 1
+		keyName = "includeLevelling",
+		name = "Send Levelling Notifications",
+		description = "Send messages when you level up a skill.",
+		section = levellingConfig,
+		position = 1
 	)
-	default boolean includeLevelling() {
+	default boolean includeLevelling()
+	{
 		return false;
 	}
 
 	@ConfigItem(
-			keyName = "minimumLevel",
-			name = "Minimum level",
-			description = "Levels greater than or equal to this value will send a message.",
-			section = levellingConfig,
-			position = 2
+		keyName = "minimumLevel",
+		name = "Minimum level",
+		description = "Levels greater than or equal to this value will send a message.",
+		section = levellingConfig,
+		position = 2
 	)
-	default int minLevel() {
+	default int minLevel()
+	{
 		return 0;
 	}
 
 	@ConfigItem(
-			keyName = "levelInterval",
-			name = "Send every X levels",
-			description = "Only levels that are a multiple of this value are sent. Level 99 and Max XP are always sent, and so is anything at or above Always send from level.",
-			section = levellingConfig,
-			position = 3
+		keyName = "levelInterval",
+		name = "Send every X levels",
+		description = "Only levels that are a multiple of this value are sent. Level 99 and Max XP are always sent, and so is anything at or above Always send from level.",
+		section = levellingConfig,
+		position = 3
 	)
-	default int levelInterval() {
+	default int levelInterval()
+	{
 		return 10;
 	}
 
 	@ConfigItem(
-			keyName = "levelIntervalOverride",
-			name = "Always send from level",
-			description = "Every level at or above this one is sent, no matter what Send every X levels is set to. 0 turns it off.",
-			section = levellingConfig,
-			position = 4
+		keyName = "levelIntervalOverride",
+		name = "Always send from level",
+		description = "Every level at or above this one is sent, no matter what Send every X levels is set to. 0 turns it off.",
+		section = levellingConfig,
+		position = 4
 	)
-	default int levelIntervalOverride() {
+	default int levelIntervalOverride()
+	{
 		return 90;
 	}
 
 	@ConfigItem(
-			keyName = "notifyVirtualLevels",
-			name = "Virtual levels",
-			description = "Also send levels past 99, and when a skill hits 200M XP.",
-			section = levellingConfig,
-			position = 5
+		keyName = "notifyVirtualLevels",
+		name = "Virtual levels",
+		description = "Also send levels past 99, and when a skill hits 200M XP.",
+		section = levellingConfig,
+		position = 5
 	)
-	default boolean notifyVirtualLevels() {
+	default boolean notifyVirtualLevels()
+	{
 		return true;
 	}
 
 	@ConfigItem(
-			keyName = "notifyCombatLevel",
-			name = "Combat level",
-			description = "Also send when your combat level goes up.",
-			section = levellingConfig,
-			position = 6
+		keyName = "notifyCombatLevel",
+		name = "Combat level",
+		description = "Also send when your combat level goes up.",
+		section = levellingConfig,
+		position = 6
 	)
-	default boolean notifyCombatLevel() {
+	default boolean notifyCombatLevel()
+	{
 		return false;
 	}
 
 	@ConfigItem(
-			keyName = "sendLevellingScreenshot",
-			name = "Include levelling screenshots",
-			description = "Include a screenshot when leveling up.",
-			section = levellingConfig,
-			position = 100
+		keyName = "sendLevellingScreenshot",
+		name = "Include levelling screenshots",
+		description = "Include a screenshot when leveling up.",
+		section = levellingConfig,
+		position = 100
 	)
-	default boolean sendLevellingScreenshot() {
+	default boolean sendLevellingScreenshot()
+	{
 		return true;
 	}
-	// End levelling config section
 
-	// Questing config section
 	@ConfigSection(
-			name = "Questing",
-			description = "The config for questing notifications",
-			position = 2,
-			closedByDefault = true
+		name = "Questing",
+		description = "The config for questing notifications",
+		position = 2,
+		closedByDefault = true
 	)
 	String questingConfig = "questingConfig";
 
 	@ConfigItem(
-			keyName = "includeQuests",
-			name = "Send Quest Notifications",
-			description = "Send messages when you complete a quest.",
-			section = questingConfig,
-			position = 1
+		keyName = "includeQuests",
+		name = "Send Quest Notifications",
+		description = "Send messages when you complete a quest.",
+		section = questingConfig,
+		position = 1
 	)
-	default boolean includeQuestComplete() {
+	default boolean includeQuestComplete()
+	{
 		return false;
 	}
 
 	@ConfigItem(
-			keyName = "sendQuestingScreenshot",
-			name = "Include quest screenshots",
-			description = "Include a screenshot with the Discord notification when you complete a quest.",
-			section = questingConfig,
-			position = 100
+		keyName = "sendQuestingScreenshot",
+		name = "Include quest screenshots",
+		description = "Include a screenshot with the Discord notification when you complete a quest.",
+		section = questingConfig,
+		position = 100
 	)
-	default boolean sendQuestingScreenshot() {
+	default boolean sendQuestingScreenshot()
+	{
 		return true;
 	}
-	// End questing config section
 
-	// Death config section
 	@ConfigSection(
-			name = "Deaths",
-			description = "The config for death notifications",
-			position = 3,
-			closedByDefault = true
+		name = "Deaths",
+		description = "The config for death notifications",
+		position = 3,
+		closedByDefault = true
 	)
 	String deathConfig = "deathConfig";
 
 	@ConfigItem(
-			keyName = "includeDeaths",
-			name = "Send Death Notifications",
-			description = "Send messages when you die to Discord.",
-			section = deathConfig,
-			position = 1
+		keyName = "includeDeaths",
+		name = "Send Death Notifications",
+		description = "Send messages when you die to Discord.",
+		section = deathConfig,
+		position = 1
 	)
-	default boolean includeDeaths() { return false; }
+	default boolean includeDeaths()
+	{
+		return false;
+	}
 
 	@ConfigItem(
-			keyName = "ignoreSafeDeaths",
-			name = "Ignore safe deaths",
-			description = "Don't send deaths that cost you nothing, like minigames, raids and your house. The Inferno, Fight Caves and raid wipes still get sent, and hardcore accounts still get deaths that count against them.",
-			section = deathConfig,
-			position = 2
+		keyName = "ignoreSafeDeaths",
+		name = "Ignore safe deaths",
+		description = "Don't send deaths that cost you nothing, like minigames, raids and your house. The Inferno, Fight Caves and raid wipes still get sent, and hardcore accounts still get deaths that count against them.",
+		section = deathConfig,
+		position = 2
 	)
-	default boolean ignoreSafeDeaths() { return true; }
-
-	@ConfigItem(
-			keyName = "deathIgnoredRegions",
-			name = "Ignored regions",
-			description = "Region IDs to never send deaths from, separated by commas. Handy for UIM death piling.",
-			section = deathConfig,
-			position = 3
-	)
-	default String deathIgnoredRegions() { return ""; }
-
-	@ConfigItem(
-			keyName = "sendDeathScreenshot",
-			name = "Include death screenshots",
-			description = "Include a screenshot with the Discord notification when you die.",
-			section = deathConfig,
-			position = 100
-	)
-	default boolean sendDeathScreenshot() {
+	default boolean ignoreSafeDeaths()
+	{
 		return true;
 	}
-	// End death config section
 
-	// Clue config section
+	@ConfigItem(
+		keyName = "deathIgnoredRegions",
+		name = "Ignored regions",
+		description = "Region IDs to never send deaths from, separated by commas. Handy for UIM death piling.",
+		section = deathConfig,
+		position = 3
+	)
+	default String deathIgnoredRegions()
+	{
+		return "";
+	}
+
+	@ConfigItem(
+		keyName = "sendDeathScreenshot",
+		name = "Include death screenshots",
+		description = "Include a screenshot with the Discord notification when you die.",
+		section = deathConfig,
+		position = 100
+	)
+	default boolean sendDeathScreenshot()
+	{
+		return true;
+	}
+
 	@ConfigSection(
-			name = "Clue Scrolls",
-			description = "The config for clue scroll notifications",
-			position = 4,
-			closedByDefault = true
+		name = "Clue Scrolls",
+		description = "The config for clue scroll notifications",
+		position = 4,
+		closedByDefault = true
 	)
 	String clueConfig = "clueConfig";
 
 	@ConfigItem(
-			keyName = "includeClues",
-			name = "Send Clue Notifications",
-			description = "Send messages when you complete a clue scroll.",
-			section = clueConfig,
-			position = 1
+		keyName = "includeClues",
+		name = "Send Clue Notifications",
+		description = "Send messages when you complete a clue scroll.",
+		section = clueConfig,
+		position = 1
 	)
-	default boolean includeClues() { return false; }
+	default boolean includeClues()
+	{
+		return false;
+	}
 
 	@ConfigItem(
-			keyName = "minClueTier",
-			name = "Minimum tier",
-			description = "Only clues of this tier or higher will send a message.",
-			section = clueConfig,
-			position = 2
+		keyName = "minClueTier",
+		name = "Minimum tier",
+		description = "Only clues of this tier or higher will send a message.",
+		section = clueConfig,
+		position = 2
 	)
-	default ClueTier minClueTier() { return ClueTier.BEGINNER; }
+	default ClueTier minClueTier()
+	{
+		return ClueTier.BEGINNER;
+	}
 
 	@ConfigItem(
-			keyName = "minClueValue",
-			name = "Minimum value",
-			description = "Only clues with a total reward worth at least this much will send a message.",
-			section = clueConfig,
-			position = 3
+		keyName = "minClueValue",
+		name = "Minimum value",
+		description = "Only clues with a total reward worth at least this much will send a message.",
+		section = clueConfig,
+		position = 3
 	)
-	default int minClueValue() { return 0; }
+	default int minClueValue()
+	{
+		return 0;
+	}
 
 	@ConfigItem(
-			keyName = "sendClueScreenshot",
-			name = "Include clue screenshots",
-			description = "Include a screenshot with the Discord notification when you complete a clue.",
-			section = clueConfig,
-			position = 100
+		keyName = "sendClueScreenshot",
+		name = "Include clue screenshots",
+		description = "Include a screenshot with the Discord notification when you complete a clue.",
+		section = clueConfig,
+		position = 100
 	)
-	default boolean sendClueScreenshot() {
+	default boolean sendClueScreenshot()
+	{
 		return true;
 	}
-	// End clue config section
 
-	// Pet config section
 	@ConfigSection(
-			name = "Pets",
-			description = "The config for pet notifications",
-			position = 5,
-			closedByDefault = true
+		name = "Pets",
+		description = "The config for pet notifications",
+		position = 5,
+		closedByDefault = true
 	)
 	String petConfig = "petConfig";
 
 	@ConfigItem(
-			keyName = "includePets",
-			name = "Send Pet Notifications",
-			description = "Send messages when you receive a pet.",
-			section = petConfig,
-			position = 1
+		keyName = "includePets",
+		name = "Send Pet Notifications",
+		description = "Send messages when you receive a pet.",
+		section = petConfig,
+		position = 1
 	)
-	default boolean includePets() { return false; }
+	default boolean includePets()
+	{
+		return false;
+	}
 
 	@ConfigItem(
-			keyName = "notifyDuplicatePets",
-			name = "Notify duplicate pets",
-			description = "Also send a message when you would have got a pet you already have.",
-			section = petConfig,
-			position = 2
+		keyName = "notifyDuplicatePets",
+		name = "Notify duplicate pets",
+		description = "Also send a message when you would have got a pet you already have.",
+		section = petConfig,
+		position = 2
 	)
-	default boolean notifyDuplicatePets() { return true; }
+	default boolean notifyDuplicatePets()
+	{
+		return true;
+	}
 
 	@ConfigItem(
-			keyName = "sendPetScreenshot",
-			name = "Include pet screenshots",
-			description = "Include a screenshot with the Discord notification when you receive a pet.",
-			section = petConfig,
-			position = 100
+		keyName = "sendPetScreenshot",
+		name = "Include pet screenshots",
+		description = "Include a screenshot with the Discord notification when you receive a pet.",
+		section = petConfig,
+		position = 100
 	)
-	default boolean sendPetScreenshot() {
+	default boolean sendPetScreenshot()
+	{
 		return true;
 	}
 
@@ -305,7 +332,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = collectionLogsConfig,
 		position = 1
 	)
-	default boolean includeCollectionLogs() { return false; }
+	default boolean includeCollectionLogs()
+	{
+		return false;
+	}
 
 	@ConfigItem(
 		keyName = "collectionLogDenylist",
@@ -314,7 +344,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = collectionLogsConfig,
 		position = 2
 	)
-	default String collectionLogDenylist() { return ""; }
+	default String collectionLogDenylist()
+	{
+		return "";
+	}
 
 	@ConfigItem(
 		keyName = "sendCollectionLogScreenshot",
@@ -323,7 +356,8 @@ public interface DiscordNotificationsConfig extends Config {
 		section = collectionLogsConfig,
 		position = 100
 	)
-	default boolean sendCollectionLogScreenshot() {
+	default boolean sendCollectionLogScreenshot()
+	{
 		return true;
 	}
 
@@ -342,7 +376,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = combatAchievementsConfig,
 		position = 1
 	)
-	default boolean includeCombatAchievements() { return false; }
+	default boolean includeCombatAchievements()
+	{
+		return false;
+	}
 
 	@ConfigItem(
 		keyName = "minCombatAchievementTier",
@@ -351,7 +388,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = combatAchievementsConfig,
 		position = 2
 	)
-	default CombatAchievementTier minCombatAchievementTier() { return CombatAchievementTier.EASY; }
+	default CombatAchievementTier minCombatAchievementTier()
+	{
+		return CombatAchievementTier.EASY;
+	}
 
 	@ConfigItem(
 		keyName = "sendCombatAchievementScreenshot",
@@ -360,7 +400,8 @@ public interface DiscordNotificationsConfig extends Config {
 		section = combatAchievementsConfig,
 		position = 100
 	)
-	default boolean sendCombatAchievementsScreenshot() {
+	default boolean sendCombatAchievementsScreenshot()
+	{
 		return true;
 	}
 
@@ -379,7 +420,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = lootConfig,
 		position = 1
 	)
-	default boolean includeLoot() { return false; }
+	default boolean includeLoot()
+	{
+		return false;
+	}
 
 	@ConfigItem(
 		keyName = "minLootValue",
@@ -388,7 +432,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = lootConfig,
 		position = 2
 	)
-	default int minLootValue() { return 100000; }
+	default int minLootValue()
+	{
+		return 100000;
+	}
 
 	@ConfigItem(
 		keyName = "lootValueBasis",
@@ -397,7 +444,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = lootConfig,
 		position = 3
 	)
-	default LootValueBasis lootValueBasis() { return LootValueBasis.STACK; }
+	default LootValueBasis lootValueBasis()
+	{
+		return LootValueBasis.STACK;
+	}
 
 	@ConfigItem(
 		keyName = "lootAllowlist",
@@ -406,7 +456,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = lootConfig,
 		position = 4
 	)
-	default String lootAllowlist() { return ""; }
+	default String lootAllowlist()
+	{
+		return "";
+	}
 
 	@ConfigItem(
 		keyName = "lootDenylist",
@@ -415,7 +468,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = lootConfig,
 		position = 5
 	)
-	default String lootDenylist() { return ""; }
+	default String lootDenylist()
+	{
+		return "";
+	}
 
 	@ConfigItem(
 		keyName = "lootSourceDenylist",
@@ -424,7 +480,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = lootConfig,
 		position = 6
 	)
-	default String lootSourceDenylist() { return ""; }
+	default String lootSourceDenylist()
+	{
+		return "";
+	}
 
 	@ConfigItem(
 		keyName = "includePlayerLoot",
@@ -433,7 +492,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = lootConfig,
 		position = 7
 	)
-	default boolean includePlayerLoot() { return true; }
+	default boolean includePlayerLoot()
+	{
+		return true;
+	}
 
 	@ConfigItem(
 		keyName = "sendLootScreenshot",
@@ -442,7 +504,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = lootConfig,
 		position = 100
 	)
-	default boolean sendLootScreenshot() { return true; }
+	default boolean sendLootScreenshot()
+	{
+		return true;
+	}
 
 	@ConfigSection(
 		name = "Achievement Diaries",
@@ -459,7 +524,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = diaryConfig,
 		position = 1
 	)
-	default boolean includeDiaries() { return false; }
+	default boolean includeDiaries()
+	{
+		return false;
+	}
 
 	@ConfigItem(
 		keyName = "minDiaryDifficulty",
@@ -468,7 +536,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = diaryConfig,
 		position = 2
 	)
-	default DiaryDifficulty minDiaryDifficulty() { return DiaryDifficulty.EASY; }
+	default DiaryDifficulty minDiaryDifficulty()
+	{
+		return DiaryDifficulty.EASY;
+	}
 
 	@ConfigItem(
 		keyName = "sendDiaryScreenshot",
@@ -477,7 +548,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = diaryConfig,
 		position = 100
 	)
-	default boolean sendDiaryScreenshot() { return true; }
+	default boolean sendDiaryScreenshot()
+	{
+		return true;
+	}
 
 	@ConfigSection(
 		name = "Boss Kills",
@@ -494,7 +568,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = killCountConfig,
 		position = 1
 	)
-	default boolean includeKillCounts() { return false; }
+	default boolean includeKillCounts()
+	{
+		return false;
+	}
 
 	@ConfigItem(
 		keyName = "killCountInterval",
@@ -503,7 +580,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = killCountConfig,
 		position = 2
 	)
-	default int killCountInterval() { return 50; }
+	default int killCountInterval()
+	{
+		return 50;
+	}
 
 	@ConfigItem(
 		keyName = "notifyFirstKill",
@@ -512,7 +592,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = killCountConfig,
 		position = 3
 	)
-	default boolean notifyFirstKill() { return true; }
+	default boolean notifyFirstKill()
+	{
+		return true;
+	}
 
 	@ConfigItem(
 		keyName = "notifyPersonalBests",
@@ -521,7 +604,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = killCountConfig,
 		position = 4
 	)
-	default boolean notifyPersonalBests() { return true; }
+	default boolean notifyPersonalBests()
+	{
+		return true;
+	}
 
 	@ConfigItem(
 		keyName = "sendKillCountScreenshot",
@@ -530,7 +616,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = killCountConfig,
 		position = 100
 	)
-	default boolean sendKillCountScreenshot() { return true; }
+	default boolean sendKillCountScreenshot()
+	{
+		return true;
+	}
 
 	@ConfigSection(
 		name = "Leagues (League worlds only)",
@@ -547,7 +636,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = leaguesConfig,
 		position = 1
 	)
-	default boolean includeLeagues() { return false; }
+	default boolean includeLeagues()
+	{
+		return false;
+	}
 
 	@ConfigItem(
 		keyName = "leaguesAreas",
@@ -556,7 +648,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = leaguesConfig,
 		position = 2
 	)
-	default boolean leaguesAreas() { return true; }
+	default boolean leaguesAreas()
+	{
+		return true;
+	}
 
 	@ConfigItem(
 		keyName = "leaguesRelics",
@@ -565,7 +660,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = leaguesConfig,
 		position = 3
 	)
-	default boolean leaguesRelics() { return true; }
+	default boolean leaguesRelics()
+	{
+		return true;
+	}
 
 	@ConfigItem(
 		keyName = "leaguesMasteries",
@@ -574,7 +672,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = leaguesConfig,
 		position = 4
 	)
-	default boolean leaguesMasteries() { return true; }
+	default boolean leaguesMasteries()
+	{
+		return true;
+	}
 
 	@ConfigItem(
 		keyName = "leaguesTasks",
@@ -583,7 +684,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = leaguesConfig,
 		position = 5
 	)
-	default boolean leaguesTasks() { return true; }
+	default boolean leaguesTasks()
+	{
+		return true;
+	}
 
 	@ConfigItem(
 		keyName = "minLeaguesTaskTier",
@@ -592,7 +696,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = leaguesConfig,
 		position = 6
 	)
-	default LeagueTaskTier minLeaguesTaskTier() { return LeagueTaskTier.EASY; }
+	default LeagueTaskTier minLeaguesTaskTier()
+	{
+		return LeagueTaskTier.EASY;
+	}
 
 	@ConfigItem(
 		keyName = "sendLeaguesScreenshot",
@@ -601,7 +708,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = leaguesConfig,
 		position = 100
 	)
-	default boolean sendLeaguesScreenshot() { return true; }
+	default boolean sendLeaguesScreenshot()
+	{
+		return true;
+	}
 
 	@ConfigSection(
 		name = "Webhook overrides",
@@ -619,7 +729,10 @@ public interface DiscordNotificationsConfig extends Config {
 		secret = true,
 		position = 1
 	)
-	default String levelWebhook() { return ""; }
+	default String levelWebhook()
+	{
+		return "";
+	}
 
 	@ConfigItem(
 		keyName = "questWebhook",
@@ -629,7 +742,10 @@ public interface DiscordNotificationsConfig extends Config {
 		secret = true,
 		position = 2
 	)
-	default String questWebhook() { return ""; }
+	default String questWebhook()
+	{
+		return "";
+	}
 
 	@ConfigItem(
 		keyName = "deathWebhook",
@@ -639,7 +755,10 @@ public interface DiscordNotificationsConfig extends Config {
 		secret = true,
 		position = 3
 	)
-	default String deathWebhook() { return ""; }
+	default String deathWebhook()
+	{
+		return "";
+	}
 
 	@ConfigItem(
 		keyName = "clueWebhook",
@@ -649,7 +768,10 @@ public interface DiscordNotificationsConfig extends Config {
 		secret = true,
 		position = 4
 	)
-	default String clueWebhook() { return ""; }
+	default String clueWebhook()
+	{
+		return "";
+	}
 
 	@ConfigItem(
 		keyName = "petWebhook",
@@ -659,7 +781,10 @@ public interface DiscordNotificationsConfig extends Config {
 		secret = true,
 		position = 5
 	)
-	default String petWebhook() { return ""; }
+	default String petWebhook()
+	{
+		return "";
+	}
 
 	@ConfigItem(
 		keyName = "collectionLogWebhook",
@@ -669,7 +794,10 @@ public interface DiscordNotificationsConfig extends Config {
 		secret = true,
 		position = 6
 	)
-	default String collectionLogWebhook() { return ""; }
+	default String collectionLogWebhook()
+	{
+		return "";
+	}
 
 	@ConfigItem(
 		keyName = "combatAchievementWebhook",
@@ -679,7 +807,10 @@ public interface DiscordNotificationsConfig extends Config {
 		secret = true,
 		position = 7
 	)
-	default String combatAchievementWebhook() { return ""; }
+	default String combatAchievementWebhook()
+	{
+		return "";
+	}
 
 	@ConfigItem(
 		keyName = "lootWebhook",
@@ -689,7 +820,10 @@ public interface DiscordNotificationsConfig extends Config {
 		secret = true,
 		position = 8
 	)
-	default String lootWebhook() { return ""; }
+	default String lootWebhook()
+	{
+		return "";
+	}
 
 	@ConfigItem(
 		keyName = "diaryWebhook",
@@ -699,7 +833,10 @@ public interface DiscordNotificationsConfig extends Config {
 		secret = true,
 		position = 9
 	)
-	default String diaryWebhook() { return ""; }
+	default String diaryWebhook()
+	{
+		return "";
+	}
 
 	@ConfigItem(
 		keyName = "killCountWebhook",
@@ -709,7 +846,10 @@ public interface DiscordNotificationsConfig extends Config {
 		secret = true,
 		position = 10
 	)
-	default String killCountWebhook() { return ""; }
+	default String killCountWebhook()
+	{
+		return "";
+	}
 
 	@ConfigItem(
 		keyName = "leaguesWebhook",
@@ -719,7 +859,10 @@ public interface DiscordNotificationsConfig extends Config {
 		secret = true,
 		position = 11
 	)
-	default String leaguesWebhook() { return ""; }
+	default String leaguesWebhook()
+	{
+		return "";
+	}
 
 	@ConfigSection(
 		name = "Advanced: message templates",
@@ -736,7 +879,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 1
 	)
-	default String levelMessage() { return "$name leveled $skills - Total Level: $total"; }
+	default String levelMessage()
+	{
+		return "$name leveled $skills - Total Level: $total";
+	}
 
 	@ConfigItem(
 		keyName = "questMessage",
@@ -745,7 +891,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 2
 	)
-	default String questMessage() { return "$name has just completed: $quest$progress"; }
+	default String questMessage()
+	{
+		return "$name has just completed: $quest$progress";
+	}
 
 	@ConfigItem(
 		keyName = "deathMessage",
@@ -754,7 +903,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 3
 	)
-	default String deathMessage() { return "$name has just died!"; }
+	default String deathMessage()
+	{
+		return "$name has just died!";
+	}
 
 	@ConfigItem(
 		keyName = "deathNpcMessage",
@@ -763,7 +915,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 4
 	)
-	default String deathNpcMessage() { return "$name has just been killed by $killer!"; }
+	default String deathNpcMessage()
+	{
+		return "$name has just been killed by $killer!";
+	}
 
 	@ConfigItem(
 		keyName = "deathPvpMessage",
@@ -772,7 +927,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 5
 	)
-	default String deathPvpMessage() { return "$name has just been PKed by $killer!"; }
+	default String deathPvpMessage()
+	{
+		return "$name has just been PKed by $killer!";
+	}
 
 	@ConfigItem(
 		keyName = "clueMessage",
@@ -781,7 +939,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 6
 	)
-	default String clueMessage() { return "$name has just completed a clue scroll ($tier #$count) worth $value gp: $items"; }
+	default String clueMessage()
+	{
+		return "$name has just completed a clue scroll ($tier #$count) worth $value gp: $items";
+	}
 
 	@ConfigItem(
 		keyName = "petTemplate",
@@ -790,7 +951,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 7
 	)
-	default String petMessage() { return "$name just got a pet: $pet$from$kc$milestone$duplicate"; }
+	default String petMessage()
+	{
+		return "$name just got a pet: $pet$from$kc$milestone$duplicate";
+	}
 
 	@ConfigItem(
 		keyName = "collectionLogMessage",
@@ -799,7 +963,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 8
 	)
-	default String collectionLogMessage() { return "$name added $entry to their collection log$progress$from$kc"; }
+	default String collectionLogMessage()
+	{
+		return "$name added $entry to their collection log$progress$from$kc";
+	}
 
 	@ConfigItem(
 		keyName = "combatAchievementsMessage",
@@ -808,7 +975,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 9
 	)
-	default String combatAchievementsMessage() { return "$name has just completed a combat achievement: $task ($tier)$tierUnlocked"; }
+	default String combatAchievementsMessage()
+	{
+		return "$name has just completed a combat achievement: $task ($tier)$tierUnlocked";
+	}
 
 	@ConfigItem(
 		keyName = "lootMessage",
@@ -817,7 +987,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 10
 	)
-	default String lootMessage() { return "$name has just received $items from $source$kc, whole drop worth $value gp"; }
+	default String lootMessage()
+	{
+		return "$name has just received $items from $source$kc, whole drop worth $value gp";
+	}
 
 	@ConfigItem(
 		keyName = "diaryMessage",
@@ -826,7 +999,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 11
 	)
-	default String diaryMessage() { return "$name has just completed the $difficulty $area diary - Total diaries: $totalDiaries"; }
+	default String diaryMessage()
+	{
+		return "$name has just completed the $difficulty $area diary - Total diaries: $totalDiaries";
+	}
 
 	@ConfigItem(
 		keyName = "killCountMessage",
@@ -835,7 +1011,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 12
 	)
-	default String killCountMessage() { return "$name has just beaten $boss$kc$time$pb"; }
+	default String killCountMessage()
+	{
+		return "$name has just beaten $boss$kc$time$pb";
+	}
 
 	@ConfigItem(
 		keyName = "personalBestMessage",
@@ -844,7 +1023,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 13
 	)
-	default String personalBestMessage() { return "$name has just set a new personal best at $boss$kc$time"; }
+	default String personalBestMessage()
+	{
+		return "$name has just set a new personal best at $boss$kc$time";
+	}
 
 	@ConfigItem(
 		keyName = "leaguesAreaMessage",
@@ -853,7 +1035,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 14
 	)
-	default String leaguesAreaMessage() { return "$name has just unlocked a new area: $area"; }
+	default String leaguesAreaMessage()
+	{
+		return "$name has just unlocked a new area: $area";
+	}
 
 	@ConfigItem(
 		keyName = "leaguesRelicMessage",
@@ -862,7 +1047,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 15
 	)
-	default String leaguesRelicMessage() { return "$name has just unlocked a new relic: $relic$relicTier"; }
+	default String leaguesRelicMessage()
+	{
+		return "$name has just unlocked a new relic: $relic$relicTier";
+	}
 
 	@ConfigItem(
 		keyName = "leaguesMasteryMessage",
@@ -871,7 +1059,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 16
 	)
-	default String leaguesMasteryMessage() { return "$name has just unlocked a new combat mastery: $mastery"; }
+	default String leaguesMasteryMessage()
+	{
+		return "$name has just unlocked a new combat mastery: $mastery";
+	}
 
 	@ConfigItem(
 		keyName = "leaguesTaskMessage",
@@ -880,7 +1071,10 @@ public interface DiscordNotificationsConfig extends Config {
 		section = messageTemplatesConfig,
 		position = 17
 	)
-	default String leaguesTaskMessage() { return "$name has just completed a Leagues task: $task ($tier)$trophy"; }
+	default String leaguesTaskMessage()
+	{
+		return "$name has just completed a Leagues task: $task ($tier)$trophy";
+	}
 
 	@ConfigSection(
 		name = "Advanced: other",
@@ -897,5 +1091,8 @@ public interface DiscordNotificationsConfig extends Config {
 		section = advancedOtherConfig,
 		position = 1
 	)
-	default SeasonalWorlds seasonalWorlds() { return SeasonalWorlds.NOTIFY; }
+	default SeasonalWorlds seasonalWorlds()
+	{
+		return SeasonalWorlds.NOTIFY;
+	}
 }

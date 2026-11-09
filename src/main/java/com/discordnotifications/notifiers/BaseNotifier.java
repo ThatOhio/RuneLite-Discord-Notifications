@@ -20,8 +20,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Every notifier extends this. The webhook service is private on purpose: subclasses build message
- * text and call {@link #send}, and nothing else in the plugin can reach the network.
+ * The webhook service is private on purpose: subclasses build message text and call {@link #send},
+ * and nothing else in the plugin can reach the network.
  */
 @Slf4j
 public abstract class BaseNotifier

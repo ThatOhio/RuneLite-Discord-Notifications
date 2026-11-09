@@ -138,7 +138,7 @@ public class LevelNotifier extends BaseNotifier
 
 	private void queueLevelUp(String name, int previousLevel, int newLevel, boolean allowVirtual)
 	{
-		// Certain activities can multilevel, check if any of the levels are valid for the message.
+		// Certain activities can multilevel
 		for (int level = previousLevel + 1; level <= newLevel; level++)
 		{
 			if (shouldSendForThisLevel(level, allowVirtual))
