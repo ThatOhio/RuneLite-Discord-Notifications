@@ -1,6 +1,5 @@
 package com.discordnotifications.notifiers;
 
-import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -68,17 +67,14 @@ public class QuestNotifier extends BaseNotifier
 			return;
 		}
 
-		send(Notification.builder()
-			.type(NotificationType.QUEST)
-			.text(config.questMessage())
-			.placeholders(placeholders(
+		send(NotificationType.QUEST, config.questMessage(),
+			placeholders(
 				questName,
 				client.getVarbitValue(VarbitID.QUESTS_COMPLETED_COUNT),
 				client.getVarbitValue(VarbitID.QUESTS_TOTAL_COUNT),
 				client.getVarpValue(VarPlayerID.QP),
-				client.getVarbitValue(VarbitID.QP_MAX)))
-			.screenshot(config.sendQuestingScreenshot())
-			.build());
+				client.getVarbitValue(VarbitID.QP_MAX)),
+			config.sendQuestingScreenshot());
 	}
 
 	static Map<String, String> placeholders(String quest, int completed, int totalQuests, int qp, int qpMax)

@@ -1,7 +1,6 @@
 package com.discordnotifications.notifiers;
 
 import com.discordnotifications.DangerLevel;
-import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import com.discordnotifications.WildcardList;
 import com.discordnotifications.WorldUtils;
@@ -145,12 +144,7 @@ public class DeathNotifier extends BaseNotifier
 			template = killer instanceof Player ? config.deathPvpMessage() : config.deathNpcMessage();
 		}
 
-		send(Notification.builder()
-			.type(NotificationType.DEATH)
-			.text(template)
-			.placeholders(Collections.singletonMap("killer", killerName))
-			.screenshot(config.sendDeathScreenshot())
-			.build());
+		send(NotificationType.DEATH, template, Collections.singletonMap("killer", killerName), config.sendDeathScreenshot());
 	}
 
 	private Actor findKiller(Player player)

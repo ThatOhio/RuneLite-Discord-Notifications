@@ -2,7 +2,6 @@ package com.discordnotifications.notifiers;
 
 import com.discordnotifications.ClueTier;
 import com.discordnotifications.ItemStackFormatter;
-import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import lombok.Value;
 import net.runelite.api.Item;
@@ -123,12 +122,7 @@ public class ClueNotifier extends BaseNotifier
 			return;
 		}
 
-		send(Notification.builder()
-			.type(NotificationType.CLUE)
-			.text(config.clueMessage())
-			.placeholders(placeholders(completed, rewards))
-			.screenshot(config.sendClueScreenshot())
-			.build());
+		send(NotificationType.CLUE, config.clueMessage(), placeholders(completed, rewards), config.sendClueScreenshot());
 	}
 
 	public static CompletedClue parse(String message)

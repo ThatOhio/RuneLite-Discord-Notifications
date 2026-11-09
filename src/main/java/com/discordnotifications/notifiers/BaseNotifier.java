@@ -3,6 +3,7 @@ package com.discordnotifications.notifiers;
 import com.discordnotifications.DiscordNotificationsConfig;
 import com.discordnotifications.DiscordWebhookService;
 import com.discordnotifications.Notification;
+import com.discordnotifications.NotificationType;
 import com.discordnotifications.SeasonalWorlds;
 import com.discordnotifications.Template;
 import com.discordnotifications.WorldUtils;
@@ -41,6 +42,16 @@ public abstract class BaseNotifier
 
 	public void reset()
 	{
+	}
+
+	protected final void send(NotificationType type, String template, Map<String, String> placeholders, boolean screenshot)
+	{
+		send(Notification.builder()
+			.type(type)
+			.text(template)
+			.placeholders(placeholders)
+			.screenshot(screenshot)
+			.build());
 	}
 
 	// The local player exists but has no name for the first ticks after login.

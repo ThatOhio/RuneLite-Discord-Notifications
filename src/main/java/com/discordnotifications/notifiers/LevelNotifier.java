@@ -1,6 +1,5 @@
 package com.discordnotifications.notifiers;
 
-import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import com.discordnotifications.WorldUtils;
 import com.google.common.collect.ImmutableMap;
@@ -202,12 +201,9 @@ public class LevelNotifier extends BaseNotifier
 		}
 		leveledSkills.clear();
 
-		send(Notification.builder()
-			.type(NotificationType.LEVEL)
-			.text(config.levelMessage())
-			.placeholders(levelPlaceholders(levels, client.getTotalLevel(), currentLevels.get(COMBAT), client.getOverallExperience()))
-			.screenshot(config.sendLevellingScreenshot())
-			.build());
+		send(NotificationType.LEVEL, config.levelMessage(),
+			levelPlaceholders(levels, client.getTotalLevel(), currentLevels.get(COMBAT), client.getOverallExperience()),
+			config.sendLevellingScreenshot());
 	}
 
 	static Map<String, String> levelPlaceholders(Map<String, Integer> levels, int totalLevel, int combatLevel, long totalXp)

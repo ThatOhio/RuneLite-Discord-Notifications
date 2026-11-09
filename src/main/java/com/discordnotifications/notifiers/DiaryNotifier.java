@@ -2,7 +2,6 @@ package com.discordnotifications.notifiers;
 
 import com.discordnotifications.AchievementDiary;
 import com.discordnotifications.DiaryDifficulty;
-import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import com.google.common.collect.ImmutableMap;
 import net.runelite.api.GameState;
@@ -141,14 +140,11 @@ public class DiaryNotifier extends BaseNotifier
 	private void sendCompleted(AchievementDiary diary)
 	{
 		int areaId = SCRIPT_AREA_IDS.get(diary.getArea());
-		send(Notification.builder()
-			.type(NotificationType.DIARY)
-			.text(config.diaryMessage())
-			.placeholders(placeholders(diary, totalCompleted(diary, client::getVarbitValue),
+		send(NotificationType.DIARY, config.diaryMessage(),
+			placeholders(diary, totalCompleted(diary, client::getVarbitValue),
 				runIntScript(COMPLETED_TASKS_SCRIPT), runIntScript(TOTAL_TASKS_SCRIPT),
-				runIntScript(COMPLETED_AREA_TASKS_SCRIPT, areaId), runIntScript(TOTAL_AREA_TASKS_SCRIPT, areaId)))
-			.screenshot(config.sendDiaryScreenshot())
-			.build());
+				runIntScript(COMPLETED_AREA_TASKS_SCRIPT, areaId), runIntScript(TOTAL_AREA_TASKS_SCRIPT, areaId)),
+			config.sendDiaryScreenshot());
 	}
 
 	private int runIntScript(Object... args)

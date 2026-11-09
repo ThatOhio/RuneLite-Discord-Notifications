@@ -1,7 +1,6 @@
 package com.discordnotifications.notifiers;
 
 import com.discordnotifications.KillCountService;
-import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import com.google.common.collect.ImmutableMap;
 import lombok.Value;
@@ -81,12 +80,9 @@ public class KillCountNotifier extends BaseNotifier
 			return;
 		}
 
-		send(Notification.builder()
-			.type(NotificationType.KILL_COUNT)
-			.text(best ? config.personalBestMessage() : config.killCountMessage())
-			.placeholders(placeholders(kill, resolvePb(kill)))
-			.screenshot(config.sendKillCountScreenshot())
-			.build());
+		send(NotificationType.KILL_COUNT, best ? config.personalBestMessage() : config.killCountMessage(),
+			placeholders(kill, resolvePb(kill)),
+			config.sendKillCountScreenshot());
 	}
 
 	private String resolvePb(Kill kill)

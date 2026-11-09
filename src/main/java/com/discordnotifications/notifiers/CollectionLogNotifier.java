@@ -176,12 +176,7 @@ public class CollectionLogNotifier extends BaseNotifier
 			placeholders.putAll(killCountService.sourcePlaceholders(drop));
 		}
 
-		send(Notification.builder()
-			.type(NotificationType.COLLECTION_LOG)
-			.text(config.collectionLogMessage())
-			.placeholders(placeholders)
-			.screenshot(config.sendCollectionLogScreenshot())
-			.build());
+		send(NotificationType.COLLECTION_LOG, config.collectionLogMessage(), placeholders, config.sendCollectionLogScreenshot());
 
 		// Its own notification because the queue drops the clog line when it merges into a loot or pet line
 		if (rankUp != null)

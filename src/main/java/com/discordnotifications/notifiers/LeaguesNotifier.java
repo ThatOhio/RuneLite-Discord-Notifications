@@ -1,7 +1,6 @@
 package com.discordnotifications.notifiers;
 
 import com.discordnotifications.LeagueTaskTier;
-import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import com.google.common.collect.ImmutableMap;
 import lombok.RequiredArgsConstructor;
@@ -43,12 +42,7 @@ public class LeaguesNotifier extends BaseNotifier
 			return;
 		}
 
-		send(Notification.builder()
-			.type(NotificationType.LEAGUES)
-			.text(template)
-			.placeholders(withGameDetails(event))
-			.screenshot(config.sendLeaguesScreenshot())
-			.build());
+		send(NotificationType.LEAGUES, template, withGameDetails(event), config.sendLeaguesScreenshot());
 	}
 
 	private boolean onLeagueWorld()
