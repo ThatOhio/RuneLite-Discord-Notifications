@@ -14,5 +14,6 @@ public enum NotificationType
 	CLUE,
 	QUEST,
 	LEVEL,
-	DEATH
+	DEATH,
+	MANUAL_SCREENSHOT
 }

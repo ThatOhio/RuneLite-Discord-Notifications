@@ -10,17 +10,15 @@ Discord has a more detailed guide here: https://support.discord.com/hc/en-us/art
 
 ![image](https://user-images.githubusercontent.com/13265450/109745517-9b42ef80-7b99-11eb-82f9-63f8ea590e8c.png)
 
-![image](https://i.imgur.com/ACGx8eB.png)
-
 ## Defaults
 Nothing gets posted until you turn it on, so after adding your webhook open the sections you want and tick the send option. Screenshots are on for all of them. Once an event is on, this is what gets sent:
 
 | Event | What gets sent |
 | --- | --- |
-| Level ups | Every 10 levels and every level from 90 up, including past 99. Combat level is its own option and starts off |
+| Level ups | Every 10 levels from 50 and every level from 90 up. Levels past 99 and combat level are their own options and start off |
 | Quests | Every quest |
 | Deaths | Skips safe deaths like minigames and your house |
-| Clue scrolls | Every tier |
+| Clue scrolls | Every tier, rewards worth 100k or more |
 | Pets | Includes pets you already have |
 | Collection log | Every new slot |
 | Combat tasks | Every tier |
@@ -36,6 +34,7 @@ Nothing gets posted until you turn it on, so after adding your webhook open the 
 - Boss kill notifications come from the kill count chat message, so Filter out boss kill-count with spam-filter needs to be off in your game settings.
 - Leagues notifications only get sent on a Leagues world. The settings are near the bottom of the list.
 - Screenshots are of the whole game window, chatbox included. If you don't want that posted to the channel, turn off the screenshot option for that event.
+- If something happens that the plugin doesn't catch, set the Screenshot hotkey in Webhook Settings and press it to post a screenshot yourself. It does nothing until you pick a key.
 - Keep your webhook URL to yourself, anyone with it can post to your channel.
 
 Found a bug or want something added? Open an issue: https://github.com/ThatOhio/RuneLite-Discord-Notifications/issues

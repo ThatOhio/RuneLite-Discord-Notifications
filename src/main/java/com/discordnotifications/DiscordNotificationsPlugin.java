@@ -10,6 +10,7 @@ import com.discordnotifications.notifiers.KillCountNotifier;
 import com.discordnotifications.notifiers.LeaguesNotifier;
 import com.discordnotifications.notifiers.LevelNotifier;
 import com.discordnotifications.notifiers.LootNotifier;
+import com.discordnotifications.notifiers.ManualScreenshotNotifier;
 import com.discordnotifications.notifiers.PetNotifier;
 import com.discordnotifications.notifiers.QuestNotifier;
 import com.google.common.base.Strings;
@@ -77,6 +78,9 @@ public class DiscordNotificationsPlugin extends Plugin
 	private LeaguesNotifier leaguesNotifier;
 
 	@Inject
+	private ManualScreenshotNotifier manualScreenshotNotifier;
+
+	@Inject
 	private HeldNotifications heldNotifications;
 
 	@Inject
@@ -102,11 +106,13 @@ public class DiscordNotificationsPlugin extends Plugin
 		gameState = null;
 		resetState();
 		notificationQueue.start();
+		manualScreenshotNotifier.start();
 	}
 
 	@Override
 	protected void shutDown() throws Exception
 	{
+		manualScreenshotNotifier.stop();
 		notificationQueue.shutdown();
 	}
 
