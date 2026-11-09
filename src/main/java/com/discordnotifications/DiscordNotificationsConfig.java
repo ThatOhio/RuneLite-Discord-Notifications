@@ -39,7 +39,7 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 			keyName = "seasonalWorlds",
 			name = "Leagues and Deadman worlds",
-			description = "Notify puts [Leagues] or [DMM] at the start of each message. Ignore doesn't send anything from those worlds.",
+			description = "Notify puts [Leagues], [DMM] or [Grid Master] at the start of each message. Ignore doesn't send anything from those worlds.",
 			section = webhookConfig,
 			position = 2
 	)

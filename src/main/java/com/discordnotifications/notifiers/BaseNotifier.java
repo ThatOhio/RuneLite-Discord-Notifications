@@ -61,8 +61,9 @@ public abstract class BaseNotifier
 		}
 
 		Set<WorldType> worldTypes = client.getWorldType();
-		String prefix = WorldUtils.gameModePrefix(worldTypes);
-		if (WorldUtils.isIgnoredWorld(worldTypes) || (!prefix.isEmpty() && config.seasonalWorlds() == SeasonalWorlds.IGNORE))
+		boolean gridMaster = WorldUtils.isGridMaster(client);
+		String prefix = WorldUtils.gameModePrefix(worldTypes, gridMaster);
+		if (WorldUtils.isIgnoredWorld(worldTypes, gridMaster) || (!prefix.isEmpty() && config.seasonalWorlds() == SeasonalWorlds.IGNORE))
 		{
 			log.debug("Dropping notification, ignored world {}", worldTypes);
 			return true;

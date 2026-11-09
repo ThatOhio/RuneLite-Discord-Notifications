@@ -25,8 +25,8 @@ public final class WorldUtils
 		WorldType.NOSAVE_MODE,
 		WorldType.TOURNAMENT_WORLD);
 
-	// Seasonal Deadman worlds carry the tournament flag too
-	private static final Set<WorldType> IGNORED_ON_DEADMAN = Sets.difference(IGNORED, EnumSet.of(WorldType.TOURNAMENT_WORLD));
+	// Seasonal Deadman and Grid Master worlds carry the tournament flag too
+	private static final Set<WorldType> IGNORED_ON_SEASONAL = Sets.difference(IGNORED, EnumSet.of(WorldType.TOURNAMENT_WORLD));
 
 	private static final Set<WorldType> SEPARATE_STATS = Sets.union(IGNORED, EnumSet.of(WorldType.DEADMAN, WorldType.SEASONAL));
 
@@ -58,16 +58,28 @@ public final class WorldUtils
 	{
 	}
 
-	public static boolean isIgnoredWorld(Set<WorldType> worldTypes)
+	public static boolean isGridMaster(Client client)
 	{
-		return !Collections.disjoint(worldTypes.contains(WorldType.DEADMAN) ? IGNORED_ON_DEADMAN : IGNORED, worldTypes);
+		return client.getWorldType().contains(WorldType.TOURNAMENT_WORLD)
+			&& client.getVarbitValue(VarbitID.BINGO_INITIAL_SETUP_DONE) > 0;
 	}
 
-	public static String gameModePrefix(Set<WorldType> worldTypes)
+	public static boolean isIgnoredWorld(Set<WorldType> worldTypes, boolean gridMaster)
+	{
+		boolean seasonal = gridMaster || worldTypes.contains(WorldType.DEADMAN);
+		return !Collections.disjoint(seasonal ? IGNORED_ON_SEASONAL : IGNORED, worldTypes);
+	}
+
+	public static String gameModePrefix(Set<WorldType> worldTypes, boolean gridMaster)
 	{
 		if (worldTypes.contains(WorldType.DEADMAN))
 		{
 			return "[DMM] ";
+		}
+
+		if (gridMaster)
+		{
+			return "[Grid Master] ";
 		}
 
 		return worldTypes.contains(WorldType.SEASONAL) ? "[Leagues] " : "";
