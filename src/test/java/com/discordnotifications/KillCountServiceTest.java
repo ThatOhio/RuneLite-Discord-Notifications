@@ -1,21 +1,198 @@
 package com.discordnotifications;
 
 import com.discordnotifications.KillCountService.Drop;
+import net.runelite.api.Client;
+import net.runelite.api.NPC;
+import net.runelite.api.Player;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.api.gameval.NpcID;
+import net.runelite.api.gameval.VarPlayerID;
+import net.runelite.client.callback.ClientThread;
+import net.runelite.client.config.ConfigManager;
+import net.runelite.client.events.NpcLootReceived;
+import net.runelite.client.events.PlayerLootReceived;
 import net.runelite.client.game.ItemStack;
 import net.runelite.http.api.loottracker.LootRecordType;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class KillCountServiceTest
 {
+	private static final String GROUP = "discordnotifications";
+	private static final String ZULRAH_SAVED = "kc_zulrah";
+
+	@Mock
+	private Client client;
+
+	@Mock
+	private ClientThread clientThread;
+
+	@Mock
+	private ConfigManager configManager;
+
+	@Mock
+	private CoreKillCounts coreKillCounts;
+
+	@InjectMocks
+	private KillCountService service;
+
+	private final Map<String, Integer> saved = new HashMap<>();
+
+	@Before
+	public void setUp()
+	{
+		lenient().doAnswer(call -> saved.get(call.<String>getArgument(1)))
+			.when(configManager).getRSProfileConfiguration(eq(GROUP), anyString(), eq(int.class));
+		lenient().doAnswer(call -> saved.put(call.getArgument(1), call.getArgument(2)))
+			.when(configManager).setRSProfileConfiguration(eq(GROUP), anyString(), any());
+	}
+
+	private void killZulrah()
+	{
+		NPC npc = mock(NPC.class);
+		when(npc.getName()).thenReturn("Zulrah");
+		when(npc.getId()).thenReturn(NpcID.SNAKEBOSS_BOSS_RANGED);
+		service.onNpcLootReceived(new NpcLootReceived(npc, Collections.emptyList()));
+	}
+
+	private void chatZulrah(int kc)
+	{
+		service.onGameMessage("Your Zulrah kill count is: " + kc + ".");
+	}
+
+	private Integer zulrahKc()
+	{
+		return service.getKillCount(LootRecordType.NPC, "Zulrah");
+	}
+
+	@Test
+	public void noPriorCountStaysUnknown()
+	{
+		killZulrah();
+		killZulrah();
+		assertNull(zulrahKc());
+		assertTrue(saved.isEmpty());
+	}
+
+	@Test
+	public void lootBeforeChat()
+	{
+		saved.put(ZULRAH_SAVED, 100);
+		killZulrah();
+		assertEquals(Integer.valueOf(101), zulrahKc());
+
+		chatZulrah(101);
+		assertEquals(Integer.valueOf(101), zulrahKc());
+		assertEquals(Integer.valueOf(101), saved.get(ZULRAH_SAVED));
+	}
+
+	@Test
+	public void chatBeforeLoot()
+	{
+		saved.put(ZULRAH_SAVED, 100);
+		chatZulrah(101);
+		assertEquals(Integer.valueOf(101), zulrahKc());
+
+		killZulrah();
+		assertEquals(Integer.valueOf(101), zulrahKc());
+
+		chatZulrah(102);
+		killZulrah();
+		assertEquals(Integer.valueOf(102), zulrahKc());
+	}
+
+	@Test
+	public void firstChatLineStartsTheCount()
+	{
+		chatZulrah(5);
+		killZulrah();
+		assertEquals(Integer.valueOf(5), zulrahKc());
+		assertEquals(Integer.valueOf(5), saved.get(ZULRAH_SAVED));
+	}
+
+	@Test
+	public void varpAlreadyIncludingTheKillIsNotCountedTwice()
+	{
+		when(client.getVarpValue(VarPlayerID.TOTAL_SNAKEBOSS_KILLS)).thenReturn(101);
+		killZulrah();
+		assertEquals(Integer.valueOf(101), zulrahKc());
+
+		when(client.getVarpValue(VarPlayerID.TOTAL_SNAKEBOSS_KILLS)).thenReturn(102);
+		killZulrah();
+		assertEquals(Integer.valueOf(102), zulrahKc());
+	}
+
+	@Test
+	public void chatCommandsCountAlreadyIncludingTheKillIsNotCountedTwice()
+	{
+		when(coreKillCounts.chatCommandsKc("zulrah")).thenReturn(101);
+		killZulrah();
+		assertEquals(Integer.valueOf(101), zulrahKc());
+	}
+
+	@Test
+	public void lootTrackerCountNeverIncludesTheKillBeingHandled()
+	{
+		when(coreKillCounts.lootTrackerKills(LootRecordType.NPC, "Zulrah")).thenReturn(100);
+		killZulrah();
+		assertEquals(Integer.valueOf(101), zulrahKc());
+	}
+
+	@Test
+	public void gameCountsAreNotCopiedIntoAnEmptySave()
+	{
+		when(client.getVarpValue(VarPlayerID.TOTAL_SNAKEBOSS_KILLS)).thenReturn(101);
+		killZulrah();
+		assertTrue(saved.isEmpty());
+	}
+
+	@Test
+	public void playerKillsDontShareAnNpcCount()
+	{
+		saved.put(ZULRAH_SAVED, 100);
+		when(coreKillCounts.lootTrackerKills(LootRecordType.PLAYER, "Zulrah")).thenReturn(5);
+
+		Player player = mock(Player.class);
+		when(player.getName()).thenReturn("Zulrah");
+		service.onPlayerLootReceived(new PlayerLootReceived(player, Collections.emptyList()));
+
+		assertEquals(Integer.valueOf(6), service.getKillCount(LootRecordType.PLAYER, "Zulrah"));
+		assertEquals(Integer.valueOf(100), zulrahKc());
+		assertEquals(Integer.valueOf(100), saved.get(ZULRAH_SAVED));
+	}
+
+	@Test
+	public void resetForgetsCachedCounts()
+	{
+		when(client.getVarpValue(VarPlayerID.TOTAL_SNAKEBOSS_KILLS)).thenReturn(101);
+		killZulrah();
+
+		service.reset();
+		when(client.getVarpValue(VarPlayerID.TOTAL_SNAKEBOSS_KILLS)).thenReturn(0);
+		assertNull(zulrahKc());
+	}
+
 	@Test
 	public void dropsGoStaleAfterThirtySeconds()
 	{

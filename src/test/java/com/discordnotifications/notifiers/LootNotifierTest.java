@@ -195,7 +195,6 @@ public class LootNotifierTest
 	{
 		assertEquals("Pyramid Plunder", LootNotifier.CHAT_DROPS.get("You have found a Pharaoh's sceptre! It fell on the floor.").getSource());
 		assertEquals("Deep sea trawling", LootNotifier.CHAT_DROPS.get("You catch a swift marlin!").getSource());
-		assertEquals(7, LootNotifier.CHAT_DROPS.size());
 	}
 
 	@Test

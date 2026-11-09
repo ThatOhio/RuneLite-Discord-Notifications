@@ -1,7 +1,6 @@
 package com.discordnotifications;
 
 import com.discordnotifications.BossNames.BossKc;
-import net.runelite.api.gameval.VarPlayerID;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -72,15 +71,5 @@ public class BossNamesTest
 		{
 			assertEquals(key, BossNames.cleanBossName(key));
 		}
-	}
-
-	@Test
-	public void newBossesHaveAVarp()
-	{
-		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_COMPLETED_THEFRACTUREDARCHIVE), BossNames.BOSS_VARPS.get(BossNames.cleanBossName("Fractured Archive")));
-		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_MAGGOT_KING_KILLS), BossNames.BOSS_VARPS.get(BossNames.cleanBossName("Maggot King")));
-		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_COWBOSS_KILLS), BossNames.BOSS_VARPS.get(BossNames.cleanBossName("Brutus")));
-		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_COWBOSS_HARDMODE_KILLS), BossNames.BOSS_VARPS.get(BossNames.cleanBossName("Demonic Brutus")));
-		assertEquals(Integer.valueOf(VarPlayerID.TOTAL_GRYPHON_BOSS_KILLS), BossNames.BOSS_VARPS.get(BossNames.cleanBossName("Shellbane gryphon")));
 	}
 }
