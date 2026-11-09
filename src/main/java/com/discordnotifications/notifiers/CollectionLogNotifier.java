@@ -4,7 +4,9 @@ import com.discordnotifications.KillCountService;
 import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
 import com.discordnotifications.WildcardList;
+import com.discordnotifications.WorldUtils;
 import net.runelite.api.ScriptID;
+import net.runelite.api.WorldType;
 import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.gameval.VarClientID;
 import net.runelite.api.gameval.VarPlayerID;
@@ -44,6 +46,7 @@ public class CollectionLogNotifier extends BaseNotifier
 	private final Set<String> entriesThisTick = new HashSet<>();
 	private int entriesTick = -1;
 	private int completed = 0;
+	private Set<WorldType> countedWorldTypes = null;
 	private boolean popupStarted = false;
 
 	@Override
@@ -52,13 +55,27 @@ public class CollectionLogNotifier extends BaseNotifier
 		entriesThisTick.clear();
 		entriesTick = -1;
 		completed = 0;
+		countedWorldTypes = null;
 		popupStarted = false;
 	}
 
 	public void onGameTick()
 	{
+		resetIfWorldChanged();
+
 		// The varp lags our local count, max stops it pulling the count back
 		completed = Math.max(completed, client.getVarpValue(VarPlayerID.COLLECTION_COUNT));
+	}
+
+	// Worlds with their own stats have their own log, max would keep the larger count
+	private void resetIfWorldChanged()
+	{
+		Set<WorldType> worldTypes = WorldUtils.separateStatsTypes(client.getWorldType());
+		if (!worldTypes.equals(countedWorldTypes))
+		{
+			completed = 0;
+			countedWorldTypes = worldTypes;
+		}
 	}
 
 	public void onGameMessage(String chatMessage)
