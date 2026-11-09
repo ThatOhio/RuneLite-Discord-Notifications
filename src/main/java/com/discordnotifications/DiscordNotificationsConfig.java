@@ -858,11 +858,11 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "leaguesRelicMessage",
 		name = "Leagues Relic Message",
-		description = "Sent when you unlock a Leagues relic. Use $name and $relic.",
+		description = "Sent when you unlock a Leagues relic. Use $name, $relic and $relicTier (like: (Tier 3)). Put $relicTier straight after another word, it adds its own space.",
 		section = messageTemplatesConfig,
 		position = 15
 	)
-	default String leaguesRelicMessage() { return "$name has just unlocked a new relic: $relic"; }
+	default String leaguesRelicMessage() { return "$name has just unlocked a new relic: $relic$relicTier"; }
 
 	@ConfigItem(
 		keyName = "leaguesMasteryMessage",
@@ -876,11 +876,11 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "leaguesTaskMessage",
 		name = "Leagues Task Message",
-		description = "Sent when you finish a Leagues task. Use $name, $task and $tier.",
+		description = "Sent when you finish a Leagues task. Use $name, $task, $tier and $trophy (like: , unlocking the Rune trophy). Put $trophy straight after another word, it adds its own comma. It's blank unless that task earned you a new trophy.",
 		section = messageTemplatesConfig,
 		position = 17
 	)
-	default String leaguesTaskMessage() { return "$name has just completed a Leagues task: $task ($tier)"; }
+	default String leaguesTaskMessage() { return "$name has just completed a Leagues task: $task ($tier)$trophy"; }
 
 	@ConfigSection(
 		name = "Advanced: other",
