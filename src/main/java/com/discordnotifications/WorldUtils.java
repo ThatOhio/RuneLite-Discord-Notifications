@@ -166,7 +166,7 @@ public final class WorldUtils
 		return DangerLevel.DANGEROUS;
 	}
 
-	private static boolean isVisible(Client client, int componentId)
+	static boolean isVisible(Client client, int componentId)
 	{
 		Widget widget = client.getWidget(componentId);
 		return widget != null && !widget.isHidden();

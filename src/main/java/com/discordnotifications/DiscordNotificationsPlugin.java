@@ -163,6 +163,7 @@ public class DiscordNotificationsPlugin extends Plugin
 	public void onVarbitChanged(VarbitChanged event)
 	{
 		diaryNotifier.onVarbitChanged(event);
+		gameSettingsWarning.onVarbitChanged(event);
 	}
 
 	@Subscribe(priority = 1) // before core's loot tracker, raid loot needs the mode from chat
