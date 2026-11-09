@@ -1,5 +1,6 @@
 package com.discordnotifications.notifiers;
 
+import com.discordnotifications.BossNames;
 import com.discordnotifications.KillCountService;
 import com.discordnotifications.NotificationType;
 import com.google.common.collect.ImmutableMap;
@@ -35,7 +36,7 @@ public class KillCountNotifier extends BaseNotifier
 		ticksWaited = 0;
 	}
 
-	public void onGameMessage(String message, KillCountService.BossKc kc)
+	public void onGameMessage(String message, BossNames.BossKc kc)
 	{
 		Kill parsed = parse(message, kc);
 		if (parsed != null)
@@ -104,7 +105,7 @@ public class KillCountNotifier extends BaseNotifier
 		return (count == 1 && notifyFirst) || (interval > 0 && count % interval == 0);
 	}
 
-	static Kill parse(String message, KillCountService.BossKc kc)
+	static Kill parse(String message, BossNames.BossKc kc)
 	{
 		if (message.startsWith("Preparation"))
 		{

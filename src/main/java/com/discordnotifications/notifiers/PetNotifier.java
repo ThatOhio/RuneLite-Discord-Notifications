@@ -143,7 +143,7 @@ public class PetNotifier extends BaseNotifier
 		KillCountService.Drop drop = killCountService.getRecentPetDrop();
 		if (drop != null)
 		{
-			placeholders.putAll(killCountService.sourcePlaceholders(drop));
+			placeholders.putAll(KillCountService.sourcePlaceholders(sanitize(drop.getSource()), killCountService.getKillCount(drop.getType(), drop.getSource())));
 		}
 		if (milestone != null && placeholders.getOrDefault("kc", "").isEmpty())
 		{

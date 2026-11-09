@@ -1,6 +1,6 @@
 package com.discordnotifications.notifiers;
 
-import com.discordnotifications.KillCountService;
+import com.discordnotifications.BossNames;
 import com.discordnotifications.Template;
 import com.discordnotifications.notifiers.KillCountNotifier.Kill;
 import org.junit.Test;
@@ -14,7 +14,7 @@ public class KillCountNotifierTest
 {
 	private static Kill parse(String message)
 	{
-		return KillCountNotifier.parse(message, KillCountService.parseBoss(message));
+		return KillCountNotifier.parse(message, BossNames.parseBoss(message));
 	}
 
 	private static Kill parseAll(String... messages)

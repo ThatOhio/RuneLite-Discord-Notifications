@@ -1,9 +1,8 @@
 package com.discordnotifications.notifiers;
 
-import com.discordnotifications.ClueTier;
+import com.discordnotifications.CompletedClue;
 import com.discordnotifications.ItemStackFormatter;
 import com.discordnotifications.NotificationType;
-import lombok.Value;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.events.WidgetLoaded;
@@ -18,15 +17,11 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Singleton
 public class ClueNotifier extends BaseNotifier
 {
-	private static final Pattern CLUE_REGEX = Pattern.compile("You have completed (?<count>\\d+) (?<tier>\\w+) Treasure Trails?\\.");
-
 	@Inject
 	private ItemStackFormatter itemStackFormatter;
 
@@ -47,7 +42,7 @@ public class ClueNotifier extends BaseNotifier
 			return;
 		}
 
-		CompletedClue completed = parse(chatMessage);
+		CompletedClue completed = CompletedClue.parse(chatMessage);
 		if (completed != null && completed.getTier().ordinal() >= config.minClueTier().ordinal())
 		{
 			pending = completed;
@@ -125,18 +120,6 @@ public class ClueNotifier extends BaseNotifier
 		send(NotificationType.CLUE, config.clueMessage(), placeholders(completed, rewards), config.sendClueScreenshot());
 	}
 
-	public static CompletedClue parse(String message)
-	{
-		Matcher matcher = CLUE_REGEX.matcher(message);
-		if (!matcher.find())
-		{
-			return null;
-		}
-
-		ClueTier tier = ClueTier.fromName(matcher.group("tier"));
-		return tier == null ? null : new CompletedClue(tier, Integer.parseInt(matcher.group("count")));
-	}
-
 	static Map<String, String> placeholders(CompletedClue completed, List<ItemStackFormatter.Stack> rewards)
 	{
 		Map<String, String> placeholders = new HashMap<>();
@@ -145,12 +128,5 @@ public class ClueNotifier extends BaseNotifier
 		placeholders.put("items", ItemStackFormatter.format(rewards));
 		placeholders.put("value", QuantityFormatter.quantityToStackSize(ItemStackFormatter.totalValue(rewards)));
 		return placeholders;
-	}
-
-	@Value
-	public static class CompletedClue
-	{
-		ClueTier tier;
-		int count;
 	}
 }

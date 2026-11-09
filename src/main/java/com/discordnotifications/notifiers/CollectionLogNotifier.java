@@ -173,7 +173,7 @@ public class CollectionLogNotifier extends BaseNotifier
 		KillCountService.Drop drop = killCountService.getRecentDrop();
 		if (drop != null && cameFrom(entry, itemNames(drop)))
 		{
-			placeholders.putAll(killCountService.sourcePlaceholders(drop));
+			placeholders.putAll(KillCountService.sourcePlaceholders(sanitize(drop.getSource()), killCountService.getKillCount(drop.getType(), drop.getSource())));
 		}
 
 		send(NotificationType.COLLECTION_LOG, config.collectionLogMessage(), placeholders, config.sendCollectionLogScreenshot());

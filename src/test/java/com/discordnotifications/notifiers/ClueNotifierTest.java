@@ -1,40 +1,17 @@
 package com.discordnotifications.notifiers;
 
 import com.discordnotifications.ClueTier;
+import com.discordnotifications.CompletedClue;
 import com.discordnotifications.ItemStackFormatter.Stack;
 import com.discordnotifications.Template;
-import com.discordnotifications.notifiers.ClueNotifier.CompletedClue;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 public class ClueNotifierTest
 {
-	@Test
-	public void parsesTierAndCount()
-	{
-		assertEquals(new CompletedClue(ClueTier.MEDIUM, 1312), ClueNotifier.parse("You have completed 1312 medium Treasure Trails."));
-		assertEquals(new CompletedClue(ClueTier.BEGINNER, 42), ClueNotifier.parse("You have completed 42 beginner Treasure Trails."));
-		assertEquals(new CompletedClue(ClueTier.MASTER, 2), ClueNotifier.parse("You have completed 2 master Treasure Trails."));
-	}
-
-	@Test
-	public void parsesSingleClue()
-	{
-		assertEquals(new CompletedClue(ClueTier.EASY, 1), ClueNotifier.parse("You have completed 1 easy Treasure Trail."));
-	}
-
-	@Test
-	public void ignoresOtherMessages()
-	{
-		assertNull(ClueNotifier.parse("You have completed 5 quests."));
-		assertNull(ClueNotifier.parse("Well done, you've completed the Treasure Trail!"));
-		assertNull(ClueNotifier.parse("You have completed 3 impossible Treasure Trails."));
-	}
-
 	@Test
 	public void rendersPlaceholders()
 	{
