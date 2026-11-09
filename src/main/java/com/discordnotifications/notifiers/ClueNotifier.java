@@ -127,7 +127,7 @@ public class ClueNotifier extends BaseNotifier
 			.type(NotificationType.CLUE)
 			.text(config.clueMessage())
 			.placeholders(placeholders(completed, rewards))
-			.screenshot(config.sendClueScreenshot() && value >= config.clueScreenshotMinValue())
+			.screenshot(config.sendClueScreenshot())
 			.build());
 	}
 

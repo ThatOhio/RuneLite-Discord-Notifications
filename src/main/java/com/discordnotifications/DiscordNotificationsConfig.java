@@ -122,17 +122,6 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean sendLevellingScreenshot() {
 		return true;
 	}
-
-	@ConfigItem(
-			keyName = "levelScreenshotMinLevel",
-			name = "Screenshot minimum level",
-			description = "Only include a screenshot when a skill reaches at least this level. 0 means every level up gets one.",
-			section = levellingConfig,
-			position = 101
-	)
-	default int levelScreenshotMinLevel() {
-		return 0;
-	}
 	// End levelling config section
 
 	// Questing config section
@@ -261,15 +250,6 @@ public interface DiscordNotificationsConfig extends Config {
 	default boolean sendClueScreenshot() {
 		return true;
 	}
-
-	@ConfigItem(
-			keyName = "clueScreenshotMinValue",
-			name = "Screenshot minimum value",
-			description = "Only include a screenshot when the total reward is worth at least this much.",
-			section = clueConfig,
-			position = 101
-	)
-	default int clueScreenshotMinValue() { return 0; }
 	// End clue config section
 
 	// Pet config section

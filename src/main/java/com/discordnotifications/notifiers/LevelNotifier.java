@@ -201,12 +201,11 @@ public class LevelNotifier extends BaseNotifier
 		}
 		leveledSkills.clear();
 
-		int screenshotMin = config.levelScreenshotMinLevel();
 		send(Notification.builder()
 			.type(NotificationType.LEVEL)
 			.text(config.levelMessage())
 			.placeholders(levelPlaceholders(levels, client.getTotalLevel(), currentLevels.get(COMBAT)))
-			.screenshot(config.sendLevellingScreenshot() && levels.values().stream().anyMatch(level -> level >= screenshotMin))
+			.screenshot(config.sendLevellingScreenshot())
 			.build());
 	}
 
