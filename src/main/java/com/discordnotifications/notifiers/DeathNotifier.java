@@ -6,6 +6,8 @@ import com.discordnotifications.NotificationType;
 import com.discordnotifications.WildcardList;
 import com.discordnotifications.WorldUtils;
 import net.runelite.api.Actor;
+import net.runelite.api.NPC;
+import net.runelite.api.NPCComposition;
 import net.runelite.api.Player;
 import net.runelite.api.Skill;
 import net.runelite.api.events.ActorDeath;
@@ -15,6 +17,8 @@ import net.runelite.api.events.ScriptPreFired;
 import javax.inject.Singleton;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.stream.Stream;
 
 @Singleton
 public class DeathNotifier extends BaseNotifier
@@ -152,27 +156,57 @@ public class DeathNotifier extends BaseNotifier
 	private Actor findKiller(Player player)
 	{
 		Actor target = lastTarget.get();
+		if (isLastTargetKiller(player, target))
+		{
+			return target;
+		}
+
+		if (WorldUtils.canBePked(client))
+		{
+			Actor pker = closestAttacker(player, client.getTopLevelWorldView().players().stream().filter(DeathNotifier::isHostile));
+			if (pker != null)
+			{
+				return pker;
+			}
+		}
+
+		return closestAttacker(player, client.getTopLevelWorldView().npcs().stream().filter(DeathNotifier::isCombatNpc));
+	}
+
+	private boolean isLastTargetKiller(Player player, Actor target)
+	{
 		if (target == null || target.isDead() || target.getInteracting() != player)
 		{
-			return null;
+			return false;
 		}
 
 		// InteractingChanged doesn't fire during a long fight, so still targeting it counts as recent
 		if (player.getInteracting() != target && client.getTickCount() - lastTargetTick > KILLER_WINDOW_TICKS)
 		{
-			return null;
+			return false;
 		}
 
-		if (target instanceof Player)
-		{
-			// Friends following you also show up as interacting
-			Player other = (Player) target;
-			if (!WorldUtils.canBePked(client) || other.isFriend() || other.isClanMember() || other.isFriendsChatMember())
-			{
-				return null;
-			}
-		}
+		return !(target instanceof Player) || (WorldUtils.canBePked(client) && isHostile((Player) target));
+	}
 
-		return target;
+	private static Actor closestAttacker(Player player, Stream<? extends Actor> candidates)
+	{
+		Comparator<Actor> nearest = Comparator.comparingInt(a -> a.getLocalLocation().distanceTo(player.getLocalLocation()));
+		return candidates
+			.filter(a -> a.getInteracting() == player && !a.isDead())
+			.min(nearest.thenComparing(Actor::getCombatLevel, Comparator.reverseOrder()))
+			.orElse(null);
+	}
+
+	// Friends following you also show up as interacting
+	private static boolean isHostile(Player other)
+	{
+		return !other.isFriend() && !other.isClanMember() && !other.isFriendsChatMember();
+	}
+
+	private static boolean isCombatNpc(NPC npc)
+	{
+		NPCComposition composition = npc.getTransformedComposition();
+		return composition != null && composition.isInteractible() && !composition.isFollower() && composition.getCombatLevel() > 0;
 	}
 }
