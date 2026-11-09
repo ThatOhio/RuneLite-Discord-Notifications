@@ -423,6 +423,15 @@ public class KillCountService
 		return kc == null ? 0 : kc;
 	}
 
+	public Double getPb(String boss)
+	{
+		if (pluginDisabled(CHAT_COMMANDS_PLUGIN))
+		{
+			return null;
+		}
+		return configManager.getRSProfileConfiguration("personalbest", cleanBossName(boss), double.class);
+	}
+
 	// The tracker skips kills with no loot and only knows kills made with it on, so this is a lower bound
 	private int lootTrackerKills(LootRecordType type, String source)
 	{

@@ -842,16 +842,16 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "killCountMessage",
 		name = "Boss Kill Message",
-		description = "Sent on a kill count milestone or first kill. Use $name, $boss, $kc (like: (KC 1,234)) and $time (like: in 1:23.40). Put $kc and $time straight after another word, they add their own space. $time is blank if the boss doesn't give one.",
+		description = "Sent on a kill count milestone or first kill. Use $name, $boss, $kc (like: (KC 1,234)), $time (like: in 1:23.40) and $pb (like: (PB 1:02.40)). Put $kc, $time and $pb straight after another word, they add their own space. $time is blank if the boss doesn't give one, $pb is blank if your best isn't known.",
 		section = messageTemplatesConfig,
 		position = 12
 	)
-	default String killCountMessage() { return "$name has just beaten $boss$kc$time"; }
+	default String killCountMessage() { return "$name has just beaten $boss$kc$time$pb"; }
 
 	@ConfigItem(
 		keyName = "personalBestMessage",
 		name = "Personal Best Message",
-		description = "Sent when you beat your best time. Uses the same placeholders as Boss Kill Message.",
+		description = "Sent when you beat your best time. Uses the same placeholders as Boss Kill Message, except $pb is always blank because this kill is the best.",
 		section = messageTemplatesConfig,
 		position = 13
 	)
