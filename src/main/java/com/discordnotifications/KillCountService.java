@@ -15,6 +15,7 @@ import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.NpcID;
 import net.runelite.api.gameval.VarPlayerID;
+import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -334,7 +335,7 @@ public class KillCountService
 
 	public Drop getRecentDrop()
 	{
-		return isRecent(lastDrop, Instant.now()) ? lastDrop : null;
+		return isRecent(lastDrop, Instant.now()) || heldForCoxChest() ? lastDrop : null;
 	}
 
 	static boolean isRecent(Drop drop, Instant now)
@@ -344,7 +345,7 @@ public class KillCountService
 
 	public Drop getRecentPetDrop()
 	{
-		return isRecentForPet(lastDrop, Instant.now()) ? lastDrop : null;
+		return isRecentForPet(lastDrop, Instant.now()) || heldForCoxChest() ? lastDrop : null;
 	}
 
 	// EVENT keeps the long window, raid chests pay out well after the drop is recorded
@@ -352,6 +353,17 @@ public class KillCountService
 	{
 		return isRecent(drop, now)
 			&& (drop.getType() == LootRecordType.EVENT || Duration.between(drop.getTime(), now).compareTo(RECENT_PET_DROP) <= 0);
+	}
+
+	private boolean heldForCoxChest()
+	{
+		return isAwaitingCoxChest(lastDrop) && client.getVarbitValue(VarbitID.RAIDS_CLIENT_INDUNGEON) == 1;
+	}
+
+	// The chest can sit unopened for minutes after the KC line, and only that line records no items
+	static boolean isAwaitingCoxChest(Drop drop)
+	{
+		return drop != null && drop.getType() == LootRecordType.EVENT && drop.getItems().isEmpty() && drop.getSource().startsWith(COX);
 	}
 
 	public Map<String, String> sourcePlaceholders(Drop drop)

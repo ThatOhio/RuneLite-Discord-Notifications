@@ -2,8 +2,10 @@ package com.discordnotifications;
 
 import com.discordnotifications.KillCountService.BossKc;
 import com.discordnotifications.KillCountService.Drop;
+import net.runelite.api.gameval.ItemID;
 import net.runelite.api.gameval.NpcID;
 import net.runelite.api.gameval.VarPlayerID;
+import net.runelite.client.game.ItemStack;
 import net.runelite.http.api.loottracker.LootRecordType;
 import org.junit.Test;
 
@@ -44,6 +46,18 @@ public class KillCountServiceTest
 		Drop drop = new Drop("Chambers of Xeric", LootRecordType.EVENT, Collections.emptyList(), time);
 		assertTrue(KillCountService.isRecentForPet(drop, time.plusSeconds(30)));
 		assertFalse(KillCountService.isRecentForPet(drop, time.plusSeconds(31)));
+	}
+
+	@Test
+	public void onlyTheCoxKcLineWaitsForTheChest()
+	{
+		Instant time = Instant.parse("2026-01-01T00:00:00Z");
+		assertTrue(KillCountService.isAwaitingCoxChest(new Drop("Chambers of Xeric", LootRecordType.EVENT, Collections.emptyList(), time)));
+		assertTrue(KillCountService.isAwaitingCoxChest(new Drop("Chambers of Xeric Challenge Mode", LootRecordType.EVENT, Collections.emptyList(), time)));
+		assertFalse(KillCountService.isAwaitingCoxChest(new Drop("Chambers of Xeric", LootRecordType.EVENT, Collections.singletonList(new ItemStack(ItemID.COINS, 1)), time)));
+		assertFalse(KillCountService.isAwaitingCoxChest(new Drop("Theatre of Blood", LootRecordType.EVENT, Collections.emptyList(), time)));
+		assertFalse(KillCountService.isAwaitingCoxChest(new Drop("Goblin", LootRecordType.NPC, Collections.emptyList(), time)));
+		assertFalse(KillCountService.isAwaitingCoxChest(null));
 	}
 
 	@Test
