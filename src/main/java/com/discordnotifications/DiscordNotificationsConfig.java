@@ -795,7 +795,7 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "collectionLogMessage",
 		name = "Collection log Message",
-		description = "Sent when you fill a collection log slot. Use $name, $entry, $completed, $total, $progress (like: (123/1,692)), $source, $from (like: from Zulrah) and $kc (like: (KC 1,234)). Put $progress, $from and $kc straight after another word, they add their own space. The counts are blank if the game hasn't sent them yet, opening the Character Summary tab fixes that. $source, $from and $kc are blank if the item didn't come from a drop in the last 30 seconds.",
+		description = "Sent when you fill a collection log slot. Use $name, $entry, $completed, $total, $progress (like: (123/1,692)), $rank, $source, $from (like: from Zulrah) and $kc (like: (KC 1,234)). Put $progress, $from and $kc straight after another word, they add their own space. The counts are blank if the game hasn't sent them yet, opening the Character Summary tab fixes that. $source, $from and $kc are blank if the item didn't come from a drop in the last 30 seconds. $rank is blank until you reach Bronze. Reaching a new rank adds its own line to the post.",
 		section = messageTemplatesConfig,
 		position = 8
 	)

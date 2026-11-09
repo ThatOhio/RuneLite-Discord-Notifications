@@ -1,5 +1,6 @@
 package com.discordnotifications.notifiers;
 
+import com.discordnotifications.CollectionLogRank;
 import com.discordnotifications.KillCountService;
 import com.discordnotifications.Notification;
 import com.discordnotifications.NotificationType;
@@ -22,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.ToIntFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -146,6 +148,7 @@ public class CollectionLogNotifier extends BaseNotifier
 		Map<String, String> placeholders = new HashMap<>();
 		placeholders.put("entry", entry);
 
+		CollectionLogRank rankUp = null;
 		int total = client.getVarpValue(VarPlayerID.COLLECTION_COUNT_MAX);
 		if (completed > 0 && total > 0)
 		{
@@ -154,6 +157,17 @@ public class CollectionLogNotifier extends BaseNotifier
 			placeholders.put("completed", completedText);
 			placeholders.put("total", totalText);
 			placeholders.put("progress", " (" + completedText + "/" + totalText + ")");
+
+			ToIntFunction<CollectionLogRank> thresholds = r -> r.threshold(client, total);
+			CollectionLogRank rank = CollectionLogRank.at(completed, thresholds);
+			if (rank != null)
+			{
+				placeholders.put("rank", rank.toString());
+			}
+			if (rank != CollectionLogRank.at(completed - 1, thresholds))
+			{
+				rankUp = rank;
+			}
 		}
 
 		KillCountService.Drop drop = killCountService.getRecentDrop();
@@ -168,6 +182,15 @@ public class CollectionLogNotifier extends BaseNotifier
 			.placeholders(placeholders)
 			.screenshot(config.sendCollectionLogScreenshot())
 			.build());
+
+		// Its own notification because the queue drops the clog line when it merges into a loot or pet line
+		if (rankUp != null)
+		{
+			send(Notification.builder()
+				.type(NotificationType.COLLECTION_LOG_RANK)
+				.text("$name has just reached " + rankUp + " rank in the collection log")
+				.build());
+		}
 	}
 
 	private List<String> itemNames(KillCountService.Drop drop)

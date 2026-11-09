@@ -122,6 +122,7 @@ public class DiscordWebhookService
 			case PET:
 				return config.petWebhook();
 			case COLLECTION_LOG:
+			case COLLECTION_LOG_RANK:
 				return config.collectionLogWebhook();
 			case LOOT:
 				return config.lootWebhook();

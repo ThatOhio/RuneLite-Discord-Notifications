@@ -144,4 +144,16 @@ public class NotificationQueueTest
 		assertEquals("Bob just got a pet!\nclog Twisted bow",
 			NotificationQueue.join(List.of(unnamedPet(null), clog("Twisted bow"))));
 	}
+
+	@Test
+	public void rankUpLineSurvivesTheMerges()
+	{
+		Notification rankUp = of(NotificationType.COLLECTION_LOG_RANK, "rank");
+		assertEquals("loot (new collection log entry!)\nrank",
+			NotificationQueue.join(List.of(clog("Twisted bow"), rankUp, loot("loot", "Twisted bow"))));
+		assertEquals("pet Olmlet\nrank",
+			NotificationQueue.join(List.of(clog("olmlet"), rankUp, namedPet("Olmlet"))));
+		assertEquals("Bob got Olmlet\nrank",
+			NotificationQueue.join(List.of(clog("Olmlet"), rankUp, unnamedPet("Bob got $pet"))));
+	}
 }
