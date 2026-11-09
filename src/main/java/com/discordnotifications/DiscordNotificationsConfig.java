@@ -418,11 +418,20 @@ public interface DiscordNotificationsConfig extends Config {
 	default String lootDenylist() { return ""; }
 
 	@ConfigItem(
+		keyName = "lootSourceDenylist",
+		name = "Never send from",
+		description = "Monsters and activities that never send a message, even for items on Always send. Same format as Always send, like Barrows or *Tempoross*. Other players aren't affected.",
+		section = lootConfig,
+		position = 6
+	)
+	default String lootSourceDenylist() { return ""; }
+
+	@ConfigItem(
 		keyName = "includePlayerLoot",
 		name = "Include PvP loot",
 		description = "Also send loot from killing other players. Safe areas like Last Man Standing never send.",
 		section = lootConfig,
-		position = 6
+		position = 7
 	)
 	default boolean includePlayerLoot() { return true; }
 

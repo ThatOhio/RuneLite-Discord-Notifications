@@ -166,7 +166,7 @@ public class LootNotifier extends BaseNotifier
 
 		for (PendingLoot loot : pendingEventLoot)
 		{
-			handleLoot(withoutUnequipped(loot.getItems(), unequipped), loot.getSource(), loot::getKc);
+			handleLoot(withoutUnequipped(loot.getItems(), unequipped), loot.getSource(), LootRecordType.EVENT, loot::getKc);
 		}
 		pendingEventLoot.clear();
 	}
@@ -229,11 +229,16 @@ public class LootNotifier extends BaseNotifier
 
 	private void handleLoot(Collection<ItemStack> items, String source, LootRecordType type)
 	{
-		handleLoot(items, source, () -> killCountService.getKillCount(type, source));
+		handleLoot(items, source, type, () -> killCountService.getKillCount(type, source));
 	}
 
-	private void handleLoot(Collection<ItemStack> items, String source, Supplier<Integer> kc)
+	private void handleLoot(Collection<ItemStack> items, String source, LootRecordType type, Supplier<Integer> kc)
 	{
+		if (isDeniedSource(source, type, WildcardList.parse(config.lootSourceDenylist())))
+		{
+			return;
+		}
+
 		Map<Integer, Integer> quantities = new LinkedHashMap<>();
 		for (ItemStack item : items)
 		{
@@ -262,6 +267,11 @@ public class LootNotifier extends BaseNotifier
 	static boolean isSkippedEvent(String name)
 	{
 		return name != null && (BA_GAMBLE.equals(name) || name.regionMatches(true, 0, CLUE_SCROLL, 0, CLUE_SCROLL.length()));
+	}
+
+	static boolean isDeniedSource(String source, LootRecordType type, WildcardList denylist)
+	{
+		return type != LootRecordType.PLAYER && denylist.matches(sanitize(source));
 	}
 
 	static List<ItemStackFormatter.Stack> qualifying(List<ItemStackFormatter.Stack> stacks, String source, long minValue, LootValueBasis basis, WildcardList allowlist, WildcardList denylist)
