@@ -8,7 +8,9 @@ import com.google.common.collect.ImmutableMap;
 import net.runelite.api.GameState;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.VarbitChanged;
+import net.runelite.client.callback.ClientThread;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.EnumMap;
 import java.util.Map;
@@ -22,6 +24,28 @@ public class DiaryNotifier extends BaseNotifier
 	private static final Pattern COMPLETION_REGEX = Pattern.compile("Congratulations! You have completed all of the (?<difficulty>.+) tasks in the (?<area>.+?) area");
 	private static final int SNAPSHOT_DELAY_TICKS = 4;
 	private static final int COOLDOWN_TICKS = 2;
+	// CS2 procs, RuneLite has no ScriptID constants for these
+	private static final int COMPLETED_TASKS_SCRIPT = 3971;
+	private static final int TOTAL_TASKS_SCRIPT = 3980;
+	private static final int COMPLETED_AREA_TASKS_SCRIPT = 4072;
+	private static final int TOTAL_AREA_TASKS_SCRIPT = 4073;
+	static final Map<String, Integer> SCRIPT_AREA_IDS = ImmutableMap.<String, Integer>builder()
+		.put("Karamja", 0)
+		.put("Ardougne", 1)
+		.put("Falador", 2)
+		.put("Fremennik", 3)
+		.put("Kandarin", 4)
+		.put("Desert", 5)
+		.put("Lumbridge & Draynor", 6)
+		.put("Morytania", 7)
+		.put("Varrock", 8)
+		.put("Wilderness", 9)
+		.put("Western Provinces", 10)
+		.put("Kourend & Kebos", 11)
+		.build();
+
+	@Inject
+	private ClientThread clientThread;
 
 	private final Map<AchievementDiary, Integer> snapshot = new EnumMap<>(AchievementDiary.class);
 	private final Map<AchievementDiary, Integer> lastPostedTick = new EnumMap<>(AchievementDiary.class);
@@ -110,12 +134,27 @@ public class DiaryNotifier extends BaseNotifier
 			return;
 		}
 
+		// Scripts can't safely run from inside these events
+		clientThread.invokeLater(() -> sendCompleted(diary));
+	}
+
+	private void sendCompleted(AchievementDiary diary)
+	{
+		int areaId = SCRIPT_AREA_IDS.get(diary.getArea());
 		send(Notification.builder()
 			.type(NotificationType.DIARY)
 			.text(config.diaryMessage())
-			.placeholders(placeholders(diary, totalCompleted(diary, client::getVarbitValue)))
+			.placeholders(placeholders(diary, totalCompleted(diary, client::getVarbitValue),
+				runIntScript(COMPLETED_TASKS_SCRIPT), runIntScript(TOTAL_TASKS_SCRIPT),
+				runIntScript(COMPLETED_AREA_TASKS_SCRIPT, areaId), runIntScript(TOTAL_AREA_TASKS_SCRIPT, areaId)))
 			.screenshot(config.sendDiaryScreenshot())
 			.build());
+	}
+
+	private int runIntScript(Object... args)
+	{
+		client.runScript(args);
+		return client.getIntStack()[0];
 	}
 
 	static AchievementDiary parse(String message)
@@ -144,11 +183,16 @@ public class DiaryNotifier extends BaseNotifier
 		return total;
 	}
 
-	static Map<String, String> placeholders(AchievementDiary diary, int totalDiaries)
+	static Map<String, String> placeholders(AchievementDiary diary, int totalDiaries, int tasksComplete, int tasksTotal, int areaTasksComplete, int areaTasksTotal)
 	{
-		return ImmutableMap.of(
-			"area", diary.getArea(),
-			"difficulty", diary.getDifficulty().toString(),
-			"totalDiaries", String.valueOf(totalDiaries));
+		return ImmutableMap.<String, String>builder()
+			.put("area", diary.getArea())
+			.put("difficulty", diary.getDifficulty().toString())
+			.put("totalDiaries", String.valueOf(totalDiaries))
+			.put("tasksComplete", String.valueOf(tasksComplete))
+			.put("tasksTotal", String.valueOf(tasksTotal))
+			.put("areaTasksComplete", String.valueOf(areaTasksComplete))
+			.put("areaTasksTotal", String.valueOf(areaTasksTotal))
+			.build();
 	}
 }

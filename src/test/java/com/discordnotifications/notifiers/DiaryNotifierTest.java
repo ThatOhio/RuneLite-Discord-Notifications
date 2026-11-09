@@ -67,7 +67,17 @@ public class DiaryNotifierTest
 	@Test
 	public void rendersPlaceholders()
 	{
-		assertEquals("Hard Lumbridge & Draynor 12",
-			Template.render("$difficulty $area $totalDiaries", DiaryNotifier.placeholders(AchievementDiary.LUMBRIDGE_HARD, 12)));
+		assertEquals("Hard Lumbridge & Draynor 12 400/492 30/40",
+			Template.render("$difficulty $area $totalDiaries $tasksComplete/$tasksTotal $areaTasksComplete/$areaTasksTotal",
+				DiaryNotifier.placeholders(AchievementDiary.LUMBRIDGE_HARD, 12, 400, 492, 30, 40)));
+	}
+
+	@Test
+	public void everyAreaHasAScriptId()
+	{
+		for (AchievementDiary diary : AchievementDiary.values())
+		{
+			assertTrue(diary.getArea(), DiaryNotifier.SCRIPT_AREA_IDS.containsKey(diary.getArea()));
+		}
 	}
 }

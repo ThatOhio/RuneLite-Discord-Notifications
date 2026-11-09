@@ -822,7 +822,7 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "diaryMessage",
 		name = "Achievement Diary Message",
-		description = "Sent when you finish an achievement diary. Use $name, $area, $difficulty and $totalDiaries (how many you've finished across every area and difficulty).",
+		description = "Sent when you finish an achievement diary. Use $name, $area, $difficulty, $totalDiaries (how many you've finished across every area and difficulty), $tasksComplete and $tasksTotal (tasks across every area), $areaTasksComplete and $areaTasksTotal (tasks in this area).",
 		section = messageTemplatesConfig,
 		position = 11
 	)
