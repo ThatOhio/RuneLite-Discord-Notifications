@@ -140,7 +140,7 @@ public class PetNotifier extends BaseNotifier
 		{
 			placeholders.put("pet", pet);
 		}
-		KillCountService.Drop drop = killCountService.getRecentDrop();
+		KillCountService.Drop drop = killCountService.getRecentPetDrop();
 		if (drop != null)
 		{
 			placeholders.putAll(killCountService.sourcePlaceholders(drop));

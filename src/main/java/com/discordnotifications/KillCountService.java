@@ -56,6 +56,8 @@ public class KillCountService
 	private static final String LOOT_TRACKER_PLUGIN = LootTrackerPlugin.class.getSimpleName().toLowerCase(Locale.ROOT);
 	private static final int SLAYER_LOG_CAP = 65535;
 	private static final Duration RECENT_DROP = Duration.ofSeconds(30);
+	// PetNotifier can wait 3.6 s for the pet name before it asks for the drop
+	private static final Duration RECENT_PET_DROP = Duration.ofSeconds(6);
 
 	private static final String GAUNTLET_BOSS = "Crystalline Hunllef";
 	private static final String CG_BOSS = "Corrupted Hunllef";
@@ -338,6 +340,18 @@ public class KillCountService
 	static boolean isRecent(Drop drop, Instant now)
 	{
 		return drop != null && Duration.between(drop.getTime(), now).compareTo(RECENT_DROP) <= 0;
+	}
+
+	public Drop getRecentPetDrop()
+	{
+		return isRecentForPet(lastDrop, Instant.now()) ? lastDrop : null;
+	}
+
+	// EVENT keeps the long window, raid chests pay out well after the drop is recorded
+	static boolean isRecentForPet(Drop drop, Instant now)
+	{
+		return isRecent(drop, now)
+			&& (drop.getType() == LootRecordType.EVENT || Duration.between(drop.getTime(), now).compareTo(RECENT_PET_DROP) <= 0);
 	}
 
 	public Map<String, String> sourcePlaceholders(Drop drop)

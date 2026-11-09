@@ -28,6 +28,25 @@ public class KillCountServiceTest
 	}
 
 	@Test
+	public void petsOnlyTakeAFreshKill()
+	{
+		Instant time = Instant.parse("2026-01-01T00:00:00Z");
+		Drop drop = new Drop("Goblin", LootRecordType.NPC, Collections.emptyList(), time);
+		assertTrue(KillCountService.isRecentForPet(drop, time.plusSeconds(6)));
+		assertFalse(KillCountService.isRecentForPet(drop, time.plusSeconds(7)));
+		assertFalse(KillCountService.isRecentForPet(null, time));
+	}
+
+	@Test
+	public void petsKeepTheLongWindowForEventDrops()
+	{
+		Instant time = Instant.parse("2026-01-01T00:00:00Z");
+		Drop drop = new Drop("Chambers of Xeric", LootRecordType.EVENT, Collections.emptyList(), time);
+		assertTrue(KillCountService.isRecentForPet(drop, time.plusSeconds(30)));
+		assertFalse(KillCountService.isRecentForPet(drop, time.plusSeconds(31)));
+	}
+
+	@Test
 	public void sourceAndKcAddTheirOwnSpace()
 	{
 		assertEquals("Got a fang from Zulrah (KC 1,234)",
