@@ -200,8 +200,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		}
 
 		String message = sanitize(event.getMessage());
-		killCountService.onGameMessage(message);
-		killCountNotifier.onGameMessage(message);
+		killCountNotifier.onGameMessage(message, killCountService.onGameMessage(message));
 		petNotifier.onGameMessage(message);
 		collectionLogNotifier.onGameMessage(message);
 		combatAchievementNotifier.onGameMessage(message);

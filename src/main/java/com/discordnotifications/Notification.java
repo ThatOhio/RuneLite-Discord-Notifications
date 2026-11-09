@@ -3,7 +3,6 @@ package com.discordnotifications;
 import lombok.Builder;
 import lombok.Value;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +24,4 @@ public class Notification
 	// The items a loot line lists, the queue matches these against collection log entries
 	@Builder.Default
 	List<String> itemNames = Collections.emptyList();
-
-	@Builder.Default
-	Instant createdAt = Instant.now();
 }

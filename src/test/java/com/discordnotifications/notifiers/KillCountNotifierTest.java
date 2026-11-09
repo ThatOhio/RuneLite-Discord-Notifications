@@ -1,5 +1,6 @@
 package com.discordnotifications.notifiers;
 
+import com.discordnotifications.KillCountService;
 import com.discordnotifications.Template;
 import com.discordnotifications.notifiers.KillCountNotifier.Kill;
 import org.junit.Test;
@@ -11,12 +12,17 @@ import static org.junit.Assert.assertTrue;
 
 public class KillCountNotifierTest
 {
+	private static Kill parse(String message)
+	{
+		return KillCountNotifier.parse(message, KillCountService.parseBoss(message));
+	}
+
 	private static Kill parseAll(String... messages)
 	{
 		Kill kill = null;
 		for (String message : messages)
 		{
-			Kill parsed = KillCountNotifier.parse(message);
+			Kill parsed = parse(message);
 			kill = kill == null ? parsed : kill.merge(parsed);
 		}
 		return kill;
@@ -25,26 +31,26 @@ public class KillCountNotifierTest
 	@Test
 	public void parsesKillCount()
 	{
-		assertEquals(new Kill("Zulrah", 1234, null, false, null), KillCountNotifier.parse("Your Zulrah kill count is: 1,234."));
+		assertEquals(new Kill("Zulrah", 1234, null, false, null), parse("Your Zulrah kill count is: 1,234."));
 	}
 
 	@Test
 	public void parsesTimes()
 	{
-		assertEquals(new Kill(null, null, "0:56.50", true, null), KillCountNotifier.parse("Fight duration: 0:56.50 (new personal best)."));
-		assertEquals(new Kill(null, null, "1:00:56.50", true, null), KillCountNotifier.parse("Fight duration: 1:00:56.50 (new personal best)."));
-		assertEquals(new Kill(null, null, "0:59.30", false, "0:56.50"), KillCountNotifier.parse("Fight duration: 0:59.30. Personal best: 0:56.50"));
-		assertEquals(new Kill(null, null, "6:30", true, null), KillCountNotifier.parse("Subdued in 6:30 (new personal best)."));
-		assertEquals(new Kill(null, null, "46:31.80", false, "40:24.60"), KillCountNotifier.parse("Congratulations - your raid is complete! Team size: Solo Duration: 46:31.80 Personal best: 40:24.60"));
+		assertEquals(new Kill(null, null, "0:56.50", true, null), parse("Fight duration: 0:56.50 (new personal best)."));
+		assertEquals(new Kill(null, null, "1:00:56.50", true, null), parse("Fight duration: 1:00:56.50 (new personal best)."));
+		assertEquals(new Kill(null, null, "0:59.30", false, "0:56.50"), parse("Fight duration: 0:59.30. Personal best: 0:56.50"));
+		assertEquals(new Kill(null, null, "6:30", true, null), parse("Subdued in 6:30 (new personal best)."));
+		assertEquals(new Kill(null, null, "46:31.80", false, "40:24.60"), parse("Congratulations - your raid is complete! Team size: Solo Duration: 46:31.80 Personal best: 40:24.60"));
 	}
 
 	@Test
 	public void ignoresLapsAndOtherMessages()
 	{
-		assertNull(KillCountNotifier.parse("Your Ardougne Rooftop lap count is: 200."));
-		assertNull(KillCountNotifier.parse("Your Agility Arena Total Ticket count is: 1,000."));
-		assertNull(KillCountNotifier.parse("Preparation time: 1:23 (new personal best)"));
-		assertNull(KillCountNotifier.parse("You eat the shark."));
+		assertNull(parse("Your Ardougne Rooftop lap count is: 200."));
+		assertNull(parse("Your Agility Arena Total Ticket count is: 1,000."));
+		assertNull(parse("Preparation time: 1:23 (new personal best)"));
+		assertNull(parse("You eat the shark."));
 	}
 
 	@Test
@@ -123,13 +129,13 @@ public class KillCountNotifierTest
 	@Test
 	public void newBestKeepsNoPbFromTheLine()
 	{
-		assertNull(KillCountNotifier.parse("Fight duration: 0:56.50 (new personal best).").getPb());
+		assertNull(parse("Fight duration: 0:56.50 (new personal best).").getPb());
 	}
 
 	@Test
 	public void parsesPbWithoutTheTrailingPeriod()
 	{
-		assertEquals("1:02:03.40", KillCountNotifier.parse("Fight duration: 1:05:00.00. Personal best: 1:02:03.40.").getPb());
+		assertEquals("1:02:03.40", parse("Fight duration: 1:05:00.00. Personal best: 1:02:03.40.").getPb());
 	}
 
 	@Test

@@ -6,9 +6,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
-import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
-import okhttp3.HttpUrl;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -19,9 +17,7 @@ public class DiscordWebhookServiceTest
 {
 	private static List<String> parse(String configured)
 	{
-		return DiscordWebhookService.parseWebhookUrls(configured).stream()
-			.map(HttpUrl::toString)
-			.collect(Collectors.toList());
+		return DiscordWebhookService.parseWebhookUrls(configured);
 	}
 
 	@Test
@@ -59,9 +55,7 @@ public class DiscordWebhookServiceTest
 
 	private static List<String> resolve(String override, String primary)
 	{
-		return DiscordWebhookService.resolveWebhookUrls(override, primary).stream()
-			.map(HttpUrl::toString)
-			.collect(Collectors.toList());
+		return DiscordWebhookService.resolveWebhookUrls(override, primary);
 	}
 
 	@Test

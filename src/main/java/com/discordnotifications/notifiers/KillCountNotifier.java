@@ -36,9 +36,9 @@ public class KillCountNotifier extends BaseNotifier
 		ticksWaited = 0;
 	}
 
-	public void onGameMessage(String message)
+	public void onGameMessage(String message, KillCountService.BossKc kc)
 	{
-		Kill parsed = parse(message);
+		Kill parsed = parse(message, kc);
 		if (parsed != null)
 		{
 			pending = pending == null ? parsed : pending.merge(parsed);
@@ -50,7 +50,7 @@ public class KillCountNotifier extends BaseNotifier
 	{
 		if (message.startsWith(RAID_COMPLETE))
 		{
-			onGameMessage(message);
+			onGameMessage(message, null);
 		}
 	}
 
@@ -108,14 +108,13 @@ public class KillCountNotifier extends BaseNotifier
 		return (count == 1 && notifyFirst) || (interval > 0 && count % interval == 0);
 	}
 
-	static Kill parse(String message)
+	static Kill parse(String message, KillCountService.BossKc kc)
 	{
 		if (message.startsWith("Preparation"))
 		{
 			return null;
 		}
 
-		KillCountService.BossKc kc = KillCountService.parseBoss(message);
 		if (kc != null)
 		{
 			return new Kill(kc.getBoss(), kc.getCount(), null, false, null);

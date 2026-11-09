@@ -252,19 +252,19 @@ public class KillCountService
 		recordLoot(standardizedType(source, type), source, event.getItems());
 	}
 
-	public void onGameMessage(String message)
+	public BossKc onGameMessage(String message)
 	{
 		ClueNotifier.CompletedClue clue = ClueNotifier.parse(message);
 		if (clue != null)
 		{
 			recordChatCount("Clue Scroll (" + clue.getTier() + ")", clue.getCount());
-			return;
+			return null;
 		}
 
 		BossKc parsed = parseBoss(message);
 		if (parsed == null)
 		{
-			return;
+			return null;
 		}
 
 		String boss = parsed.getBoss();
@@ -274,6 +274,7 @@ public class KillCountService
 			// These give their loot late or not through the NPC event, so pets and clog need the name now
 			lastDrop = new Drop(boss, LootRecordType.EVENT, Collections.emptyList(), Instant.now());
 		}
+		return parsed;
 	}
 
 	public void onWidgetLoaded(WidgetLoaded event)

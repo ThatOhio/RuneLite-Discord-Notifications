@@ -1,6 +1,7 @@
 package com.discordnotifications;
 
 import com.google.common.base.Strings;
+import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.gameval.InterfaceID;
@@ -32,7 +33,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -41,8 +41,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
-import static net.runelite.http.api.RuneLiteAPI.GSON;
 
 /**
  * Owns all outbound traffic for the plugin. Everything else builds message text and hands it here,
@@ -84,6 +82,9 @@ public class DiscordWebhookService
 	@Inject
 	private Client client;
 
+	@Inject
+	private Gson gson;
+
 	private NotificationQueue queue;
 
 	@Inject
@@ -104,9 +105,7 @@ public class DiscordWebhookService
 
 	public void send(Notification notification)
 	{
-		List<String> urls = resolveWebhookUrls(overrideFor(notification.getType()), config.webhook()).stream()
-			.map(HttpUrl::toString)
-			.collect(Collectors.toList());
+		List<String> urls = resolveWebhookUrls(overrideFor(notification.getType()), config.webhook());
 		if (urls.isEmpty())
 		{
 			return;
@@ -148,24 +147,23 @@ public class DiscordWebhookService
 	}
 
 	// An override with no usable URL in it counts as blank, a typo shouldn't lose the message
-	static List<HttpUrl> resolveWebhookUrls(String override, String primary)
+	static List<String> resolveWebhookUrls(String override, String primary)
 	{
-		List<HttpUrl> urls = parseWebhookUrls(override);
+		List<String> urls = parseWebhookUrls(override);
 		return urls.isEmpty() ? parseWebhookUrls(primary) : urls;
 	}
 
-	static List<HttpUrl> parseWebhookUrls(String configured)
+	static List<String> parseWebhookUrls(String configured)
 	{
 		if (Strings.isNullOrEmpty(configured))
 		{
 			return Collections.emptyList();
 		}
 
-		return Arrays.stream(configured.split("[\\s,;]"))
-			.map(String::trim)
-			.filter(u -> !u.isEmpty())
+		return WildcardList.entries(configured, "[\\s,;]")
 			.map(HttpUrl::parse)
 			.filter(Objects::nonNull)
+			.map(HttpUrl::toString)
 			.collect(Collectors.toList());
 	}
 
@@ -338,7 +336,7 @@ public class DiscordWebhookService
 	{
 		DiscordWebhookBody body = new DiscordWebhookBody();
 		body.setContent(truncate(text));
-		String payload = GSON.toJson(body);
+		String payload = gson.toJson(body);
 
 		boolean jpeg = isJpeg(image);
 		RequestBody imageBody = image == null ? null : RequestBody.create(jpeg ? JPEG : PNG, image);

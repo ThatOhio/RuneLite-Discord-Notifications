@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class WildcardList
 {
@@ -16,11 +17,16 @@ public final class WildcardList
 
 	public static WildcardList parse(String text)
 	{
-		return new WildcardList(Arrays.stream(text.split("[\n,;]"))
-			.map(String::trim)
-			.filter(entry -> !entry.isEmpty())
+		return new WildcardList(entries(text, "[\n,;]")
 			.map(WildcardList::toPattern)
 			.collect(Collectors.toList()));
+	}
+
+	static Stream<String> entries(String text, String separators)
+	{
+		return Arrays.stream(text.split(separators))
+			.map(String::trim)
+			.filter(entry -> !entry.isEmpty());
 	}
 
 	public boolean matches(String value)
