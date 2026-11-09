@@ -160,7 +160,7 @@ public class DiscordNotificationsPlugin extends Plugin
 		diaryNotifier.onVarbitChanged(event);
 	}
 
-	@Subscribe
+	@Subscribe(priority = 1) // before core's loot tracker, raid loot needs the mode from chat
 	public void onChatMessage(ChatMessage event)
 	{
 		ChatMessageType type = event.getType();

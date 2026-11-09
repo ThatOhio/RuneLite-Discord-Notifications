@@ -46,7 +46,7 @@ public class KillCountServiceTest
 	{
 		assertEquals(new BossKc("Zulrah", 1234), KillCountService.parseBoss("Your Zulrah kill count is: 1,234."));
 		assertEquals(new BossKc("Kree'arra", 5), KillCountService.parseBoss("Your Kree'arra kill count is: 5."));
-		assertEquals(new BossKc("herbiboar", 12), KillCountService.parseBoss("Your herbiboar harvest count is: 12."));
+		assertEquals(new BossKc("Herbiboar", 12), KillCountService.parseBoss("Your herbiboar harvest count is: 12."));
 	}
 
 	@Test
@@ -72,6 +72,8 @@ public class KillCountServiceTest
 	public void ignoresOtherMessages()
 	{
 		assertNull(KillCountService.parseBoss("Your reward is: 5"));
+		assertNull(KillCountService.parseBoss("Your Ardougne Rooftop lap count is: 200."));
+		assertNull(KillCountService.parseBoss("Your Agility Arena Total Ticket count is: 1,000."));
 		assertNull(KillCountService.parseBoss("Your Treasure chest count is: 5."));
 		assertNull(KillCountService.parseBoss("Your completed Quest count is: 5."));
 		assertNull(KillCountService.parseBoss("Your Zulrah kill count is: 99999999999."));

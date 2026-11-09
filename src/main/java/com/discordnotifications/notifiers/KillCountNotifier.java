@@ -16,7 +16,6 @@ import java.util.regex.Pattern;
 public class KillCountNotifier extends BaseNotifier
 {
 	private static final Pattern TIME_REGEX = Pattern.compile("(?:Duration|time|Subdued in):? (?<time>[\\d:]+(?:\\.\\d+)?)", Pattern.CASE_INSENSITIVE);
-	private static final Pattern LAP_REGEX = Pattern.compile(" (?:lap|total ticket) ?count is:", Pattern.CASE_INSENSITIVE);
 	private static final String NEW_BEST = "(new personal best)";
 	private static final String RAID_COMPLETE = "Congratulations - your raid is complete!";
 	private static final String TOB = "Theatre of Blood";
@@ -105,7 +104,7 @@ public class KillCountNotifier extends BaseNotifier
 		KillCountService.BossKc kc = KillCountService.parseBoss(message);
 		if (kc != null)
 		{
-			return LAP_REGEX.matcher(message).find() ? null : new Kill(kc.getBoss(), kc.getCount(), null, false);
+			return new Kill(kc.getBoss(), kc.getCount(), null, false);
 		}
 
 		// TOB puts the last wave's duration before the raid's time in the same message

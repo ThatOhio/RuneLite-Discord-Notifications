@@ -61,6 +61,7 @@ public class KillCountService
 	private static final String CG_BOSS = "Corrupted Hunllef";
 	private static final String THE_GAUNTLET = "The Gauntlet";
 	private static final String CG_NAME = "Corrupted Gauntlet";
+	private static final String HERBIBOAR = "Herbiboar";
 	private static final String TOA = "Tombs of Amascut";
 	private static final String TOB = "Theatre of Blood";
 	private static final String COX = "Chambers of Xeric";
@@ -531,7 +532,10 @@ public class KillCountService
 			case "completion":
 				return boss.equalsIgnoreCase("Gauntlet") || boss.equalsIgnoreCase(CG_NAME) ? boss : null;
 			case "harvest":
-				return boss.equalsIgnoreCase("Herbiboar") ? boss : null;
+				return boss.equalsIgnoreCase(HERBIBOAR) ? HERBIBOAR : null;
+			case "lap":
+			case "total ticket":
+				return null;
 			default:
 				return boss;
 		}
