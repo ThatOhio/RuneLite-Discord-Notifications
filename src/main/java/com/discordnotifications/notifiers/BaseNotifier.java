@@ -36,6 +36,9 @@ public abstract class BaseNotifier
 	@Inject
 	private DiscordWebhookService webhookService;
 
+	@Inject
+	private HeldNotifications heldNotifications;
+
 	public void reset()
 	{
 	}
@@ -43,11 +46,18 @@ public abstract class BaseNotifier
 	// The local player exists but has no name for the first ticks after login.
 	protected final void send(Notification notification)
 	{
+		if (!deliver(notification))
+		{
+			heldNotifications.add(() -> deliver(notification));
+		}
+	}
+
+	private boolean deliver(Notification notification)
+	{
 		String localName = playerName();
 		if (Strings.isNullOrEmpty(localName))
 		{
-			log.debug("Dropping notification, local player name not available yet");
-			return;
+			return false;
 		}
 
 		Set<WorldType> worldTypes = client.getWorldType();
@@ -55,7 +65,7 @@ public abstract class BaseNotifier
 		if (WorldUtils.isIgnoredWorld(worldTypes) || (!prefix.isEmpty() && config.seasonalWorlds() == SeasonalWorlds.IGNORE))
 		{
 			log.debug("Dropping notification, ignored world {}", worldTypes);
-			return;
+			return true;
 		}
 
 		Map<String, String> values = new HashMap<>(notification.getPlaceholders());
@@ -67,6 +77,7 @@ public abstract class BaseNotifier
 			.namedText(notification.getNamedText() == null ? null : prefix + notification.getNamedText())
 			.placeholders(values)
 			.build());
+		return true;
 	}
 
 	protected String playerName()

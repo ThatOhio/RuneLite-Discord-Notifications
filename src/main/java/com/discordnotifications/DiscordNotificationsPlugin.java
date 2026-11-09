@@ -5,6 +5,7 @@ import com.discordnotifications.notifiers.CollectionLogNotifier;
 import com.discordnotifications.notifiers.CombatAchievementNotifier;
 import com.discordnotifications.notifiers.DeathNotifier;
 import com.discordnotifications.notifiers.DiaryNotifier;
+import com.discordnotifications.notifiers.HeldNotifications;
 import com.discordnotifications.notifiers.KillCountNotifier;
 import com.discordnotifications.notifiers.LeaguesNotifier;
 import com.discordnotifications.notifiers.LevelNotifier;
@@ -76,6 +77,9 @@ public class DiscordNotificationsPlugin extends Plugin
 	private LeaguesNotifier leaguesNotifier;
 
 	@Inject
+	private HeldNotifications heldNotifications;
+
+	@Inject
 	private KillCountService killCountService;
 
 	@Inject
@@ -139,6 +143,7 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
+		heldNotifications.onGameTick();
 		clueNotifier.onGameTick();
 		levelNotifier.onGameTick();
 		petNotifier.onGameTick();
@@ -265,6 +270,7 @@ public class DiscordNotificationsPlugin extends Plugin
 
 	private void resetState()
 	{
+		heldNotifications.reset();
 		killCountService.reset();
 		levelNotifier.reset();
 		clueNotifier.reset();
