@@ -3,11 +3,8 @@ package com.discordnotifications;
 import com.discordnotifications.BossNames.BossKc;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 import lombok.Getter;
 import lombok.Value;
-import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.NPCComposition;
 import net.runelite.api.events.WidgetLoaded;
@@ -17,15 +14,11 @@ import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
-import net.runelite.client.config.RuneLiteConfig;
 import net.runelite.client.events.NpcLootReceived;
 import net.runelite.client.events.PlayerLootReceived;
 import net.runelite.client.events.ServerNpcLoot;
 import net.runelite.client.game.ItemStack;
-import net.runelite.client.plugins.chatcommands.ChatCommandsPlugin;
 import net.runelite.client.plugins.loottracker.LootReceived;
-import net.runelite.client.plugins.loottracker.LootTrackerConfig;
-import net.runelite.client.plugins.loottracker.LootTrackerPlugin;
 import net.runelite.client.util.QuantityFormatter;
 import net.runelite.http.api.loottracker.LootRecordType;
 
@@ -36,7 +29,6 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -50,13 +42,10 @@ import static com.discordnotifications.BossNames.THE_GAUNTLET;
 import static com.discordnotifications.BossNames.cleanBossName;
 import static com.discordnotifications.BossNames.parseBoss;
 
-@Slf4j
 @Singleton
 public class KillCountService
 {
 	private static final String CONFIG_GROUP = "discordnotifications";
-	private static final String CHAT_COMMANDS_PLUGIN = ChatCommandsPlugin.class.getSimpleName().toLowerCase(Locale.ROOT);
-	private static final String LOOT_TRACKER_PLUGIN = LootTrackerPlugin.class.getSimpleName().toLowerCase(Locale.ROOT);
 	private static final int SLAYER_LOG_CAP = 65535;
 	private static final Duration RECENT_DROP = Duration.ofSeconds(30);
 	// PetNotifier can wait 3.6 s for the pet name before it asks for the drop
@@ -104,7 +93,7 @@ public class KillCountService
 	private ConfigManager configManager;
 
 	@Inject
-	private Gson gson;
+	private CoreKillCounts coreKillCounts;
 
 	private final Map<String, Integer> counts = new HashMap<>();
 
@@ -231,7 +220,7 @@ public class KillCountService
 
 	public boolean lootTrackerDisabled()
 	{
-		return pluginDisabled(LOOT_TRACKER_PLUGIN);
+		return coreKillCounts.lootTrackerDisabled();
 	}
 
 	public Integer getKillCount(LootRecordType type, String source)
@@ -319,7 +308,7 @@ public class KillCountService
 	// lootOffset is 1 while handling a loot event, the game's own counts may already include that kill
 	private int storedKc(LootRecordType type, String source, int lootOffset)
 	{
-		int kc = lootTrackerKills(type, source);
+		int kc = coreKillCounts.lootTrackerKills(type, source);
 		if (type == LootRecordType.PLAYER || type == LootRecordType.PICKPOCKET)
 		{
 			return kc;
@@ -328,53 +317,13 @@ public class KillCountService
 		String boss = cleanBossName(source);
 		Integer varp = BOSS_VARPS.get(boss);
 		kc = Math.max(kc, savedKc(source));
-		kc = Math.max(kc, chatCommandsKc(boss) - lootOffset);
+		kc = Math.max(kc, coreKillCounts.chatCommandsKc(boss) - lootOffset);
 		return varp == null ? kc : Math.max(kc, client.getVarpValue(varp) - lootOffset);
-	}
-
-	private int chatCommandsKc(String boss)
-	{
-		if (pluginDisabled(CHAT_COMMANDS_PLUGIN))
-		{
-			return 0;
-		}
-		Integer kc = configManager.getRSProfileConfiguration("killcount", boss, int.class);
-		return kc == null ? 0 : kc;
 	}
 
 	public Double getPb(String boss)
 	{
-		if (pluginDisabled(CHAT_COMMANDS_PLUGIN))
-		{
-			return null;
-		}
-		return configManager.getRSProfileConfiguration("personalbest", cleanBossName(boss), double.class);
-	}
-
-	// The tracker skips kills with no loot and only knows kills made with it on, so this is a lower bound
-	private int lootTrackerKills(LootRecordType type, String source)
-	{
-		if (pluginDisabled(LOOT_TRACKER_PLUGIN))
-		{
-			return 0;
-		}
-
-		String json = configManager.getConfiguration(LootTrackerConfig.GROUP, configManager.getRSProfileKey(), "drops_" + type + "_" + source);
-		if (json == null)
-		{
-			return 0;
-		}
-
-		try
-		{
-			LootTrackerRecord record = gson.fromJson(json, LootTrackerRecord.class);
-			return record == null ? 0 : record.kills;
-		}
-		catch (JsonSyntaxException e)
-		{
-			log.debug("Couldn't read loot tracker record for {}", source, e);
-			return 0;
-		}
+		return coreKillCounts.chatCommandsPb(cleanBossName(boss));
 	}
 
 	private int savedKc(String source)
@@ -389,11 +338,6 @@ public class KillCountService
 		{
 			configManager.setRSProfileConfiguration(CONFIG_GROUP, savedKey(source), kc);
 		}
-	}
-
-	private boolean pluginDisabled(String simpleLowerClassName)
-	{
-		return "false".equals(configManager.getConfiguration(RuneLiteConfig.GROUP_NAME, simpleLowerClassName));
 	}
 
 	private void readSlayerLog()
@@ -458,11 +402,5 @@ public class KillCountService
 		LootRecordType type;
 		Collection<ItemStack> items;
 		Instant time;
-	}
-
-	// Same shape as the loot tracker's own ConfigLoot, which is package-private
-	private static class LootTrackerRecord
-	{
-		int kills;
 	}
 }
