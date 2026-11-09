@@ -13,7 +13,6 @@ import lombok.Value;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
-import net.runelite.api.NPCComposition;
 import net.runelite.api.Player;
 import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.ItemID;
@@ -97,19 +96,17 @@ public class LootNotifier extends BaseNotifier
 
 	public void onNpcLootReceived(NpcLootReceived event)
 	{
-		String name = event.getNpc().getName();
-		if (config.includeLoot() && KillCountService.usesNpcLootEvent(event.getNpc().getId(), name))
+		if (config.includeLoot())
 		{
-			handleLoot(event.getItems(), name, LootRecordType.NPC);
+			handleLoot(event.getItems(), event.getNpc().getName(), LootRecordType.NPC);
 		}
 	}
 
 	public void onServerNpcLoot(ServerNpcLoot event)
 	{
-		NPCComposition npc = event.getComposition();
-		if (npc != null && config.includeLoot() && KillCountService.usesServerLoot(npc.getId(), npc.getName()))
+		if (config.includeLoot())
 		{
-			handleLoot(event.getItems(), npc.getName(), LootRecordType.NPC);
+			handleLoot(event.getItems(), event.getComposition().getName(), LootRecordType.NPC);
 		}
 	}
 

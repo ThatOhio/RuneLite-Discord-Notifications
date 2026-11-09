@@ -188,6 +188,12 @@ public class DiscordNotificationsPlugin extends Plugin
 			return;
 		}
 
+		if (type == ChatMessageType.SPAM)
+		{
+			killCountService.notePickpocket(sanitize(event.getMessage()));
+			return;
+		}
+
 		if (type != ChatMessageType.GAMEMESSAGE)
 		{
 			return;
@@ -235,15 +241,19 @@ public class DiscordNotificationsPlugin extends Plugin
 	@Subscribe(priority = 1)
 	public void onServerNpcLoot(ServerNpcLoot event)
 	{
-		killCountService.onServerNpcLoot(event);
-		lootNotifier.onServerNpcLoot(event);
+		if (killCountService.onServerNpcLoot(event))
+		{
+			lootNotifier.onServerNpcLoot(event);
+		}
 	}
 
 	@Subscribe(priority = 1)
 	public void onNpcLootReceived(NpcLootReceived event)
 	{
-		killCountService.onNpcLootReceived(event);
-		lootNotifier.onNpcLootReceived(event);
+		if (killCountService.onNpcLootReceived(event))
+		{
+			lootNotifier.onNpcLootReceived(event);
+		}
 	}
 
 	@Subscribe(priority = 1)

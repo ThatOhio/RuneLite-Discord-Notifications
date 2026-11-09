@@ -3,14 +3,15 @@ package com.discordnotifications;
 import com.discordnotifications.KillCountService.Drop;
 import net.runelite.api.Client;
 import net.runelite.api.NPC;
+import net.runelite.api.NPCComposition;
 import net.runelite.api.Player;
 import net.runelite.api.gameval.ItemID;
-import net.runelite.api.gameval.NpcID;
 import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.events.NpcLootReceived;
 import net.runelite.client.events.PlayerLootReceived;
+import net.runelite.client.events.ServerNpcLoot;
 import net.runelite.client.game.ItemStack;
 import net.runelite.http.api.loottracker.LootRecordType;
 import org.junit.Before;
@@ -18,6 +19,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.time.Instant;
@@ -54,6 +56,9 @@ public class KillCountServiceTest
 	@Mock
 	private CoreKillCounts coreKillCounts;
 
+	@Spy
+	private NpcLootPairing npcLootPairing = new NpcLootPairing();
+
 	@InjectMocks
 	private KillCountService service;
 
@@ -72,7 +77,6 @@ public class KillCountServiceTest
 	{
 		NPC npc = mock(NPC.class);
 		when(npc.getName()).thenReturn("Zulrah");
-		when(npc.getId()).thenReturn(NpcID.SNAKEBOSS_BOSS_RANGED);
 		service.onNpcLootReceived(new NpcLootReceived(npc, Collections.emptyList()));
 	}
 
@@ -248,18 +252,39 @@ public class KillCountServiceTest
 			Template.render("Got a fang$from$kc!", KillCountService.sourcePlaceholders("Zulrah", null)));
 	}
 
-	@Test
-	public void eachNpcUsesOneLootEvent()
+	private boolean serverLoot(String name)
 	{
-		assertTrue(KillCountService.usesServerLoot(NpcID.MAGGOT_KING_CORPSE, "Maggot King"));
-		assertFalse(KillCountService.usesNpcLootEvent(NpcID.MAGGOT_KING_CORPSE, "Maggot King"));
-		assertTrue(KillCountService.usesServerLoot(NpcID.YAMA, "Yama"));
-		assertTrue(KillCountService.usesServerLoot(-1, "Hallowed Sepulchre (Floor 5)"));
-		assertFalse(KillCountService.usesServerLoot(NpcID.ARAXXOR, "Araxxor"));
-		assertFalse(KillCountService.usesNpcLootEvent(NpcID.ARAXXOR, "Araxxor"));
-		assertFalse(KillCountService.usesServerLoot(1, "Goblin"));
-		assertTrue(KillCountService.usesNpcLootEvent(1, "Goblin"));
-		assertFalse(KillCountService.usesNpcLootEvent(1, null));
+		NPCComposition npc = mock(NPCComposition.class);
+		when(npc.getName()).thenReturn(name);
+		return service.onServerNpcLoot(new ServerNpcLoot(npc, Collections.emptyList()));
+	}
+
+	@Test
+	public void bothNpcEventsCountOneKill()
+	{
+		chatZulrah(10);
+		assertTrue(serverLoot("Zulrah"));
+		killZulrah();
+		assertEquals(Integer.valueOf(10), zulrahKc());
+	}
+
+	@Test
+	public void lootReceivedNpcsAreLeftToTheLootTracker()
+	{
+		assertFalse(serverLoot("Araxxor"));
+		assertNull(service.getLastDrop());
+	}
+
+	@Test
+	public void pickpocketServerLootIsNotAKill()
+	{
+		when(client.getTickCount()).thenReturn(100);
+		service.notePickpocket("You pick the man's pocket.");
+		assertFalse(service.onServerNpcLoot(new ServerNpcLoot(mock(NPCComposition.class), Collections.emptyList())));
+		assertNull(service.getLastDrop());
+
+		when(client.getTickCount()).thenReturn(101);
+		assertTrue(serverLoot("Man"));
 	}
 
 	@Test

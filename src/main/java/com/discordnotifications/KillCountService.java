@@ -1,15 +1,14 @@
 package com.discordnotifications;
 
 import com.discordnotifications.BossNames.BossKc;
+import com.discordnotifications.NpcLootPairing.Signal;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import lombok.Getter;
 import lombok.Value;
 import net.runelite.api.Client;
 import net.runelite.api.NPCComposition;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.InterfaceID;
-import net.runelite.api.gameval.NpcID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
@@ -31,6 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import static com.discordnotifications.BossNames.BOSS_VARPS;
 import static com.discordnotifications.BossNames.CG_BOSS;
@@ -54,34 +54,7 @@ public class KillCountService
 	// Core posts LootReceived for these instead of NpcLootReceived
 	public static final Set<String> LOOT_RECEIVED_NPCS = Set.of("The Whisperer", "Araxxor", "Branda the Fire Queen", "Eldric the Ice King", GAUNTLET_BOSS, CG_BOSS);
 
-	// Their loot never lands where NpcLootReceived looks for it
-	private static final Set<Integer> SERVER_LOOT_NPC_IDS = ImmutableSet.of(
-		NpcID.YAMA,
-		NpcID.HESPORI,
-		NpcID.MAGGOT_KING,
-		NpcID.MAGGOT_KING_CORPSE,
-		NpcID.SAILING_BULL_SHARK_DEAD,
-		NpcID.SAILING_HAMMERHEAD_SHARK_DEAD,
-		NpcID.SAILING_TIGER_SHARK_DEAD,
-		NpcID.SAILING_GREAT_WHITE_SHARK_DEAD,
-		NpcID.SAILING_NARWHAL_DEAD,
-		NpcID.SAILING_ORCA_DEAD,
-		NpcID.SAILING_PYGMY_KRAKEN_DEAD,
-		NpcID.SAILING_SPINED_KRAKEN_DEAD,
-		NpcID.SAILING_ARMOURED_KRAKEN_DEAD,
-		NpcID.SAILING_VAMPYRE_KRAKEN_DEAD,
-		NpcID.SAILING_EAGLE_RAY_DEAD,
-		NpcID.SAILING_BUTTERFLY_RAY_DEAD,
-		NpcID.SAILING_STINGRAY_DEAD,
-		NpcID.SAILING_MANTA_RAY_DEAD,
-		NpcID.SAILING_OSPREY_DEAD,
-		NpcID.SAILING_ALBATROSS_DEAD,
-		NpcID.SAILING_FRIGATEBIRD_DEAD,
-		NpcID.SAILING_TERN_DEAD,
-		NpcID.SAILING_SEA_MOGRE_DEAD,
-		NpcID.SAILING_DOLPHIN_DEAD,
-		NpcID.SAILING_VEILED_KRAKEN_DEAD,
-		16305, 16306, 16307, 16308, 16309, 16310, 16311, 16312, 16313, 16314, 16315); // Mad Angel
+	private static final Pattern PICKPOCKET = Pattern.compile("You pick (the )?.+'s? pocket.*");
 
 	@Inject
 	private Client client;
@@ -95,32 +68,52 @@ public class KillCountService
 	@Inject
 	private CoreKillCounts coreKillCounts;
 
+	@Inject
+	private NpcLootPairing npcLootPairing;
+
 	private final Map<String, Integer> counts = new HashMap<>();
 
 	@Getter
 	private Drop lastDrop;
 
+	private int pickpocketTick = -1;
+
 	public void reset()
 	{
 		counts.clear();
 		lastDrop = null;
+		pickpocketTick = -1;
+		npcLootPairing.reset();
 	}
 
-	public void onNpcLootReceived(NpcLootReceived event)
+	public boolean onNpcLootReceived(NpcLootReceived event)
 	{
-		String name = event.getNpc().getName();
-		if (usesNpcLootEvent(event.getNpc().getId(), name))
-		{
-			recordLoot(LootRecordType.NPC, name, event.getItems());
-		}
+		return recordNpcLoot(event.getNpc().getName(), event.getItems(), Signal.TILE_SCAN);
 	}
 
-	public void onServerNpcLoot(ServerNpcLoot event)
+	// Core posts this for pickpockets too and drops them the same way, the loot tracker reports those
+	public boolean onServerNpcLoot(ServerNpcLoot event)
 	{
 		NPCComposition npc = event.getComposition();
-		if (npc != null && usesServerLoot(npc.getId(), npc.getName()))
+		return npc != null && client.getTickCount() != pickpocketTick && recordNpcLoot(npc.getName(), event.getItems(), Signal.SERVER);
+	}
+
+	private boolean recordNpcLoot(String name, Collection<ItemStack> items, Signal signal)
+	{
+		if (name == null || LOOT_RECEIVED_NPCS.contains(name) || !npcLootPairing.isNewKill(name, items, signal, Instant.now()))
 		{
-			recordLoot(LootRecordType.NPC, npc.getName(), event.getItems());
+			return false;
+		}
+
+		recordLoot(LootRecordType.NPC, name, items);
+		return true;
+	}
+
+	public void notePickpocket(String message)
+	{
+		if (PICKPOCKET.matcher(message).matches())
+		{
+			pickpocketTick = client.getTickCount();
 		}
 	}
 
@@ -154,6 +147,8 @@ public class KillCountService
 
 	public BossKc onGameMessage(String message)
 	{
+		notePickpocket(message);
+
 		CompletedClue clue = CompletedClue.parse(message);
 		if (clue != null)
 		{
@@ -201,16 +196,6 @@ public class KillCountService
 		boolean sameRaid = lastDrop != null && event.getType() == LootRecordType.EVENT
 			&& RAIDS.stream().anyMatch(raid -> raid.equals(name) && lastDrop.getSource().startsWith(raid));
 		return sameRaid ? lastDrop.getSource() : name;
-	}
-
-	public static boolean usesServerLoot(int npcId, String name)
-	{
-		return SERVER_LOOT_NPC_IDS.contains(npcId) || (name != null && name.startsWith("Hallowed Sepulchre"));
-	}
-
-	public static boolean usesNpcLootEvent(int npcId, String name)
-	{
-		return name != null && !LOOT_RECEIVED_NPCS.contains(name) && !usesServerLoot(npcId, name);
 	}
 
 	public static LootRecordType standardizedType(String source, LootRecordType type)
