@@ -23,7 +23,7 @@ public class LevelNotifierTest
 
 	private static String render(String template, Map<String, Integer> levels)
 	{
-		return Template.render(template, LevelNotifier.levelPlaceholders(levels, 1500, 88));
+		return Template.render(template, LevelNotifier.levelPlaceholders(levels, 1500, 88, 4_600_000_000L));
 	}
 
 	@Test
@@ -56,6 +56,12 @@ public class LevelNotifierTest
 	public void combatPlaceholder()
 	{
 		assertEquals("Combat to 88 / 88", render("$skills / $combat", levels("Combat", 88)));
+	}
+
+	@Test
+	public void totalXpPlaceholder()
+	{
+		assertEquals("1500 / 4,600,000,000", render("$total / $totalXp", levels("Attack", 70)));
 	}
 
 	@Test

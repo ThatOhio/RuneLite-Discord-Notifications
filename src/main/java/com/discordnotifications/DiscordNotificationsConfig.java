@@ -732,7 +732,7 @@ public interface DiscordNotificationsConfig extends Config {
 	@ConfigItem(
 		keyName = "levelTemplate",
 		name = "Level Message",
-		description = "Sent when you level up. Use $name, $skills (like Attack to 70 and Strength to 72), $total and $combat. $skill and $level only give the first skill.",
+		description = "Sent when you level up. Use $name, $skills (like Attack to 70 and Strength to 72), $total, $totalXp and $combat. $skill and $level only give the first skill.",
 		section = messageTemplatesConfig,
 		position = 1
 	)
